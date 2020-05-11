@@ -10,7 +10,8 @@ function getRandom(arrayIn) {
   return(arrayIn[elem]);
 }
 db.customers.count();
-db.customers.find({},{'_id':0}).forEach((cust)=>{
+var baseCustomers=db.customers.find({},{'_id':0}).toArray();
+baseCustomers.forEach((cust)=>{
 
    cust.FirstName=getRandom(firstnames);
    cust.LastName=getRandom(lastnames);
