@@ -9,6 +9,17 @@
 /* eslint no-unused-vars: 0 */
 /* eslint no-plusplus: 0 */
 
+// Master utility script for the Apress book "MongoDB Performance Tuning"
+
+/* eslint no-var: 0 */
+/* eslint no-prototype-builtins: 0 */
+/* eslint camelcase: 0 */
+/* eslint prefer-arrow-callback: 0 */
+/* eslint object-shorthand: 0 */
+/* eslint vars-on-top: 0 */
+/* eslint no-unused-vars: 0 */
+/* eslint no-plusplus: 0 */
+
 var mongoTuning = {};
 
  mongoTuning.prepExplain = (explainInput) => {
@@ -67,3 +78,42 @@ mongoTuning.quickExplain = (inputPlan) => {
 };
 
 
+mongoTuning.executionStats = (execStats) => {
+  var stepNo = 1;
+  print('\n');
+  var printSpaces = function(n) {
+    var s = '';
+    for (var i = 1; i < n; i++) {
+      s += ' ';
+    }
+    return s;
+  };
+  var printInputStage = function(step, depth) {
+    if ('inputStage' in step) {
+      printInputStage(step.inputStage, depth + 1);
+    }
+    if ('inputStages' in step) {
+      step.inputStages.forEach(function(inputStage) {
+        printInputStage(inputStage, depth + 1);
+      });
+    }
+    var extraData = '(';
+    if ('indexName' in step) extraData += ' ' + step.indexName;
+    if ('executionTimeMillisEstimate' in step) {
+      extraData += ' ms:' + step.executionTimeMillisEstimate;
+    }
+    if ('keysExamined' in step) extraData += ' keys:' + step.keysExamined;
+    if ('docsExamined' in step) extraData += ' docs:' + step.docsExamined;
+    extraData += ')';
+    print(stepNo++, printSpaces(depth), step.stage, extraData);
+  };
+  printInputStage(execStats.executionStages, 1);
+  print(
+    '\nTotals:  ms:',
+    execStats.executionTimeMillis,
+    ' keys:',
+    execStats.totalKeysExamined,
+    ' Docs:',
+    execStats.totalDocsExamined
+  );
+};
