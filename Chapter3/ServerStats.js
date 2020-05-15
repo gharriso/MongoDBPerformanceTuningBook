@@ -104,7 +104,7 @@ dbeSS.statDelta = function (instat1, instat2) {
   var rate;
   var statDelta = {};
   statDelta.timeDelta = stat2.uptime - stat1.uptime;
-  // print("timedelta", statDelta.timeDelta);
+
   Object.keys(stat2).forEach(function (key) {
     // print(key,typeof stat2[key]);
     if (typeof stat2[key] === 'number') {
@@ -131,10 +131,11 @@ dbeSS.statDelta = function (instat1, instat2) {
  * @param {FlatServerStats} sample2 - Pass in some stats (for example from dbeSS.serverStats()) to compare with sample1
  * @returns {ServerStatsSummary}
  */
-dbeSS.summary = function (sample1, sample2) {
+dbeSS.summary = function (sample1, sample2, full) {
   // TODO: Statistic names change over versions
   var data = {};
   var deltas = dbeSS.statDelta(sample1, sample2);
+  if (full) return deltas;
   var finals = dbeSS.convertStat(sample2);
 
   // *********************************************
@@ -146,6 +147,7 @@ dbeSS.summary = function (sample1, sample2) {
   // ********************************************
   // Activity counters
   // ********************************************
+  data.interval = deltas['timeDelta'];
   data.qry = deltas['opcounters.query'].rate;
   data.getmore = deltas['opcounters.getmore'].rate;
   data.command = deltas['opcounters.command'].rate;
@@ -241,22 +243,26 @@ dbeSS.startSampling = function () {
  * @param {Object} sampleStart - The original sample that was taken.
  * @returns {ServerStatsSummary}
  */
-dbeSS.stopSampling = function (sampleStart) {
+dbeSS.stopSampling = function (sampleStart, fullStats) {
   if (!sampleStart) {
     print(
       'stopSample requires a sample object, created using dbeSS.startSampling'
     );
   }
-  return dbeSS.summary(sampleStart, dbeSS.serverStatistics());
+  return dbeSS.summary(sampleStart, dbeSS.serverStatistics(), fullStats);
 };
 
 dbeSS.searchStats = function (serverStats, regex) {
   var returnArray = [];
-  serverStats.statistics.forEach((stat) => {
-    if (stat.statistic.match(regex)) {
-      returnArray.push(stat);
-    }
-  });
+  if (serverStats.statistics) {
+    serverStats.statistics.forEach((stat) => {
+      if (stat.statistic.match(regex)) {
+        returnArray.push(stat);
+      }
+    });
+  } else {
+    return dbeSS.searchSample(serverStats, regex);
+  }
 
   return returnArray;
 };
