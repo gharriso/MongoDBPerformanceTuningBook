@@ -231,8 +231,42 @@ dbeSS.summary = function (sample1, sample2) {
  * @param {int} interval - The wait in between server stats samples.
  * @returns {ServerStatsSummary}
  */
-dbeSS.takeSample = function (interval) {
-  const sample1 = dbeSS.serverStatistics();
-  sleep(interval);
-  return dbeSS.summary(sample1, dbeSS.serverStatistics());
+dbeSS.startSampling = function () {
+  return dbeSS.serverStatistics();
+};
+
+/**
+ * Takes two server stat samples between the interval and them summarizes them.
+ *
+ * @param {Object} sampleStart - The original sample that was taken.
+ * @returns {ServerStatsSummary}
+ */
+dbeSS.stopSampling = function (sampleStart) {
+  if (!sampleStart) {
+    print(
+      'stopSample requires a sample object, created using dbeSS.startSampling'
+    );
+  }
+  return dbeSS.summary(sampleStart, dbeSS.serverStatistics());
+};
+
+dbeSS.searchStats = function (serverStats, regex) {
+  var returnArray = [];
+  serverStats.statistics.forEach((stat) => {
+    if (stat.statistic.match(regex)) {
+      returnArray.push(stat);
+    }
+  });
+
+  return returnArray;
+};
+
+dbeSS.searchSample = function (sample, regex) {
+  var returnArray = {};
+  Object.keys(sample).forEach((key) => {
+    if (key.match(regex)) {
+      returnArray[key] = sample[key];
+    }
+  });
+  return returnArray;
 };
