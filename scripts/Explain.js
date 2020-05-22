@@ -1,16 +1,3 @@
-// Master utility script for the Apress book "MongoDB Performance Tuning"
-
-/* eslint no-var: 1 */
-/* eslint no-prototype-builtins: 0 */
-/* eslint camelcase: 0 */
-/* eslint prefer-arrow-callback: 0 */
-/* eslint object-shorthand: 0 */
-/* eslint vars-on-top: 0 */
-/* eslint no-unused-vars: 1 */
-/* eslint no-plusplus: 0 */
-
-var mongoTuning = {};
-
 mongoTuning.prepExplain = (explainInput) => {
   // Takes as input explain output in one of the follow formats:
   // A fully explain JSON document, in which case emits winningPlan
@@ -41,19 +28,19 @@ mongoTuning.quickExplain = (inputPlan) => {
   const explainPlan = mongoTuning.prepExplain(inputPlan);
   let stepNo = 1;
 
-  const printSpaces = function(n) {
+  const printSpaces = function (n) {
     let s = '';
     for (let i = 1; i < n; i++) {
       s += ' ';
     }
     return s;
   };
-  const printInputStage = function(step, depth) {
+  const printInputStage = function (step, depth) {
     if ('inputStage' in step) {
       printInputStage(step.inputStage, depth + 1);
     }
     if ('inputStages' in step) {
-      step.inputStages.forEach(function(inputStage) {
+      step.inputStages.forEach(function (inputStage) {
         printInputStage(inputStage, depth + 1);
       });
     }
@@ -71,9 +58,7 @@ mongoTuning.prepExecutionStats = (explainInput) => {
   // A fully explain JSON document, in which case emits executionStats
   // An explain() cursor in which case, extracts the exectionStats from the cursor
 
-
   const keys = Object.keys(explainInput);
-
 
   if (keys.includes('executionStats')) {
     // This looks like a top level Explain
@@ -91,19 +76,19 @@ mongoTuning.executionStats = (execStatsIn) => {
   const execStats = mongoTuning.prepExecutionStats(execStatsIn);
   let stepNo = 1;
   print('\n');
-  const printSpaces = function(n) {
+  const printSpaces = function (n) {
     let s = '';
     for (let i = 1; i < n; i++) {
       s += ' ';
     }
     return s;
   };
-  var printInputStage = function(step, depth) {
+  var printInputStage = function (step, depth) {
     if ('inputStage' in step) {
       printInputStage(step.inputStage, depth + 1);
     }
     if ('inputStages' in step) {
-      step.inputStages.forEach(function(inputStage) {
+      step.inputStages.forEach(function (inputStage) {
         printInputStage(inputStage, depth + 1);
       });
     }
@@ -127,32 +112,3 @@ mongoTuning.executionStats = (execStatsIn) => {
     execStats.totalDocsExamined
   );
 };
-
-mongoTuning.profileQuery = () => {
-  let profileQuery = db.system.profile.aggregate([
-    {
-      $group: {
-        _id: { cursorid: '$cursorid' },
-        count: { $sum: 1 },
-        'queryHash-max': { $max: '$queryHash' },
-        'millis-sum': { $sum: '$millis' },
-        'ns-max': { $max: '$ns' }
-      }
-    },
-    {
-      $group: {
-        _id: {
-          queryHash: '$queryHash-max',
-          collection: '$ns-max'
-        },
-        count: { $sum: 1 },
-        millis: { $sum: '$millis-sum' }
-      }
-    },
-    { $sort: { millis: -1 } },
-    { $limit: 10 }
-  ]);
-  return profileQuery;
-};
-
- 

@@ -1,17 +1,14 @@
-// Empty object to hold our Server Statistic functions.
-var dbeSS = {};
-
 /**
  * Base function that will collect and shape raw server statistics data.
  *
  * @returns {FlatServerStats} An object containing many different server statistics.
  */
-dbeSS.serverStatistics = function () {
+mongoTuning.serverStatistics = function () {
   var output = {};
   var value;
   var rate;
   output.statistics = [];
-  var serverStats = dbeSS.flattenServerStatus(db.serverStatus()).stats; // eslint-disable-line
+  var serverStats = mongoTuning.flattenServerStatus(db.serverStatus()).stats; // eslint-disable-line
   var uptime = serverStats.uptime;
   Object.keys(serverStats).forEach(function (stat) {
     // print(stat);
@@ -37,7 +34,7 @@ dbeSS.serverStatistics = function () {
  * @param {RawServerStatus} dbServerStatus - The raw result of the mongodb command.
  * @returns {FlatServerStatus} - Flattened array of server status metrics.
  */
-dbeSS.flattenServerStatus = function (dbServerStatus) {
+mongoTuning.flattenServerStatus = function (dbServerStatus) {
   var flattenedServerStatus = {};
   flattenedServerStatus.stats = {};
 
@@ -75,8 +72,8 @@ dbeSS.flattenServerStatus = function (dbServerStatus) {
  *
  * @returns {SimpleServerStatus} - A single object with key value pairs for each stat.
  */
-dbeSS.simpleStats = function () {
-  return dbeSS.convertStat(dbeSS.serverStatistics());
+mongoTuning.simpleStats = function () {
+  return mongoTuning.convertStat(mongoTuning.serverStatistics());
 };
 
 /**
@@ -85,7 +82,7 @@ dbeSS.simpleStats = function () {
  * @param {RawServerStatus} serverStat - The raw server statistics result from Mongo.
  * @returns {SimpleServerStatus} - A single object with key value pairs for each stat.
  */
-dbeSS.convertStat = function (serverStat) {
+mongoTuning.convertStat = function (serverStat) {
   var returnStat = {};
   serverStat.statistics.forEach(function (stat) {
     returnStat[stat.statistic] = stat.value;
@@ -97,9 +94,9 @@ dbeSS.convertStat = function (serverStat) {
  * Finds the difference between two stats.
  *
  */
-dbeSS.statDelta = function (instat1, instat2) {
-  var stat1 = dbeSS.convertStat(instat1);
-  var stat2 = dbeSS.convertStat(instat2);
+mongoTuning.statDelta = function (instat1, instat2) {
+  var stat1 = mongoTuning.convertStat(instat1);
+  var stat2 = mongoTuning.convertStat(instat2);
   var delta;
   var rate;
   var statDelta = {};
@@ -127,16 +124,16 @@ dbeSS.statDelta = function (instat1, instat2) {
 /**
  * Function for comparing two sets of ServerStats collected at different times.
  *
- * @param {FlatServerStats} sample1 - Pass in some stats (for example from dbeSS.serverStats()) to compare with sample2
- * @param {FlatServerStats} sample2 - Pass in some stats (for example from dbeSS.serverStats()) to compare with sample1
+ * @param {FlatServerStats} sample1 - Pass in some stats (for example from mongoTuning.serverStats()) to compare with sample2
+ * @param {FlatServerStats} sample2 - Pass in some stats (for example from mongoTuning.serverStats()) to compare with sample1
  * @returns {ServerStatsSummary}
  */
-dbeSS.summary = function (sample1, sample2, full) {
+mongoTuning.summary = function (sample1, sample2, full) {
   // TODO: Statistic names change over versions
   var data = {};
-  var deltas = dbeSS.statDelta(sample1, sample2);
+  var deltas = mongoTuning.statDelta(sample1, sample2);
   if (full) return deltas;
-  var finals = dbeSS.convertStat(sample2);
+  var finals = mongoTuning.convertStat(sample2);
 
   // *********************************************
   //  Network counters
@@ -233,8 +230,8 @@ dbeSS.summary = function (sample1, sample2, full) {
  * @param {int} interval - The wait in between server stats samples.
  * @returns {ServerStatsSummary}
  */
-dbeSS.startSampling = function () {
-  return dbeSS.serverStatistics();
+mongoTuning.startSampling = function () {
+  return mongoTuning.serverStatistics();
 };
 
 /**
@@ -243,16 +240,20 @@ dbeSS.startSampling = function () {
  * @param {Object} sampleStart - The original sample that was taken.
  * @returns {ServerStatsSummary}
  */
-dbeSS.stopSampling = function (sampleStart, fullStats) {
+mongoTuning.stopSampling = function (sampleStart, fullStats) {
   if (!sampleStart) {
     print(
-      'stopSample requires a sample object, created using dbeSS.startSampling'
+      'stopSample requires a sample object, created using mongoTuning.startSampling'
     );
   }
-  return dbeSS.summary(sampleStart, dbeSS.serverStatistics(), fullStats);
+  return mongoTuning.summary(
+    sampleStart,
+    mongoTuning.serverStatistics(),
+    fullStats
+  );
 };
 
-dbeSS.searchStats = function (serverStats, regex) {
+mongoTuning.searchStats = function (serverStats, regex) {
   var returnArray = [];
   if (serverStats.statistics) {
     serverStats.statistics.forEach((stat) => {
@@ -261,13 +262,13 @@ dbeSS.searchStats = function (serverStats, regex) {
       }
     });
   } else {
-    return dbeSS.searchSample(serverStats, regex);
+    return mongoTuning.searchSample(serverStats, regex);
   }
 
   return returnArray;
 };
 
-dbeSS.searchSample = function (sample, regex) {
+mongoTuning.searchSample = function (sample, regex) {
   var returnArray = {};
   Object.keys(sample).forEach((key) => {
     if (key.match(regex)) {

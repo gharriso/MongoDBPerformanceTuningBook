@@ -1,4 +1,29 @@
-var dbePr = {};
+mongoTuning.profileQuery = () => {
+  let profileQuery = db.system.profile.aggregate([
+    {
+      $group: {
+        _id: { cursorid: '$cursorid' },
+        count: { $sum: 1 },
+        'queryHash-max': { $max: '$queryHash' },
+        'millis-sum': { $sum: '$millis' },
+        'ns-max': { $max: '$ns' },
+      },
+    },
+    {
+      $group: {
+        _id: {
+          queryHash: '$queryHash-max',
+          collection: '$ns-max',
+        },
+        count: { $sum: 1 },
+        millis: { $sum: '$millis-sum' },
+      },
+    },
+    { $sort: { millis: -1 } },
+    { $limit: 10 },
+  ]);
+  return profileQuery;
+};
 
 /**
  * Fetch simplified profiling info for a given database and namespace.
@@ -8,7 +33,7 @@ var dbePr = {};
  *
  * @returns {ProfilingData} Profiling data for the given namespace (queries only), grouped and simplified.
  */
-dbePr.getProfileData = function (dbName, collectionName) {
+mongoTuning.getProfileData = function (dbName, collectionName) {
   var mydb = db.getSiblingDB(dbName); // eslint-disable-line
   var ns = dbName + '.' + collectionName;
   var profileData = mydb

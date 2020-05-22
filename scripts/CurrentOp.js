@@ -1,8 +1,4 @@
-// Empty object to hold our Current Ops functions.
-//
-var dbeOps = {};
-
-dbeOps.printCurrentOps = function (printZeroSecs, printInternalProcess) {
+mongoTuning.printCurrentOps = function (printZeroSecs, printInternalProcess) {
   // console.log(COps);
   var mydb = db.getSiblingDB('admin'); // eslint-disable-line
   var output = [];
@@ -76,9 +72,9 @@ dbeOps.printCurrentOps = function (printZeroSecs, printInternalProcess) {
   return result;
 };
 
-dbeOps.opForKillList = function () {
+mongoTuning.opForKillList = function () {
   var output = [];
-  dbeOps.printCurrentOps(true, false).ops.forEach(function (op) {
+  mongoTuning.printCurrentOps(true, false).ops.forEach(function (op) {
     var outStr =
       op.opid + ' ' + op.secs + ' seconds running. ' + op.desc + ' ' + op.ns;
     output.push(outStr);
@@ -86,7 +82,7 @@ dbeOps.opForKillList = function () {
   return output;
 };
 
-dbeOps.killOp = function (opIdString) {
+mongoTuning.killOp = function (opIdString) {
   var opid = opIdString.split(' ')[0];
   if (opid.indexOf(':') == -1) {
     opid = parseInt(opid); // eslint-disable-line
