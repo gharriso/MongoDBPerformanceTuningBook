@@ -1,0 +1,49 @@
+Centos8(mongod-4.2.6) MongoDBTuningBook> var sample1=mongoTuning.serverStatSample()
+Centos8(mongod-4.2.6) MongoDBTuningBook> sleep(60000)
+
+Centos8(mongod-4.2.6) MongoDBTuningBook> var sample2=mongoTuning.serverStatSample();
+Centos8(mongod-4.2.6) MongoDBTuningBook> mongoTuning.ServerStatSummary(sample1,sample2);
+{
+  "netKBInPS": "1789.5788",
+  "netKBOutPS": "4642.3350",
+  "intervalSeconds": 60,
+  "queryPS": "3562.6167",
+  "getmorePS": 0,
+  "commandPS": "0.2500",
+  "insertPS": 0,
+  "updatePS": "3557.8000",
+  "deletePS": 0,
+  "readLatencyMs": "0.7714",
+  "writeLatencyMs": "1.3141",
+  "cmdLatencyMs": "4.6339",
+  "connections": 102,
+  "availableConnections": 51098,
+  "assertsPS": "0.0333",
+  "cacheGetsPS": "28120.0500",
+  "cacheHighWaterMB": 3462,
+  "cacheSizeMB": "563.6672",
+  "diskBlockReadsPS": "0.0333",
+  "diskBlockWritesPS": "5.8000",
+  "logKBRatePS": "1206.8542",
+  "logSyncTimeRateMsPS": "151.0971"
+}
+Centos8(mongod-4.2.6) MongoDBTuningBook> var deltas=mongoTuning.serverStatDeltas(sample1,sample2);
+Centos8(mongod-4.2.6) MongoDBTuningBook> mongoTuning.searchSample(deltas,/optLatencies.writes/)
+{
+
+}
+Centos8(mongod-4.2.6) MongoDBTuningBook> mongoTuning.searchSample(deltas,/opLatencies.writes/)
+{
+  "opLatencies.writes.latency": {
+    "lastValue": 3618866612,
+    "firstValue": 3338357289,
+    "delta": 280509323,
+    "rate": 4675155.383333334
+  },
+  "opLatencies.writes.ops": {
+    "lastValue": 8548962,
+    "firstValue": 8335496,
+    "delta": 213466,
+    "rate": 3557.766666666667
+  }
+}

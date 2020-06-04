@@ -9,7 +9,7 @@ mongoTuning.serverStatistics = function () {
   var rate;
   output.statistics = [];
   var serverStats = mongoTuning.flattenServerStatus(db.serverStatus()).stats; // eslint-disable-line
-  var uptime = serverStats.uptime;
+  var uptime = (serverStats.uptimeMillis)/1000; //seconds with precision
   Object.keys(serverStats).forEach(function (stat) {
     // print(stat);
     value = serverStats[stat];
@@ -94,7 +94,7 @@ mongoTuning.convertStat = function (serverStat) {
  * Finds the difference between two stats.
  *
  */
-mongoTuning.statDelta = function (instat1, instat2) {
+mongoTuning.serverStatDeltas = function (instat1, instat2) {
   var stat1 = mongoTuning.convertStat(instat1);
   var stat2 = mongoTuning.convertStat(instat2);
   var delta;
@@ -106,7 +106,7 @@ mongoTuning.statDelta = function (instat1, instat2) {
     // print(key,typeof stat2[key]);
     if (typeof stat2[key] === 'number') {
       delta = stat2[key] - stat1[key];
-      rate = delta / statDelta.timeDelta;
+      rate = (delta / statDelta.timeDelta);
     } else {
       delta = null;
       rate = null;
@@ -128,34 +128,34 @@ mongoTuning.statDelta = function (instat1, instat2) {
  * @param {FlatServerStats} sample2 - Pass in some stats (for example from mongoTuning.serverStats()) to compare with sample1
  * @returns {ServerStatsSummary}
  */
-mongoTuning.summary = function (sample1, sample2, full) {
+mongoTuning.serverStatSummary = function (sample1,sample2) {
   // TODO: Statistic names change over versions
   var data = {};
-  var deltas = mongoTuning.statDelta(sample1, sample2);
-  if (full) return deltas;
+  var deltas = mongoTuning.serverStatDeltas(sample1, sample2);
+
   var finals = mongoTuning.convertStat(sample2);
 
   // *********************************************
   //  Network counters
   // *********************************************
-  data.netIn = deltas['network.bytesIn'].rate;
-  data.netOut = deltas['network.bytesOut'].rate;
+  data.netKBInPS = deltas['network.bytesIn'].rate/1024;
+  data.netKBOutPS = deltas['network.bytesOut'].rate/1024;
 
   // ********************************************
   // Activity counters
   // ********************************************
-  data.interval = deltas['timeDelta'];
-  data.qry = deltas['opcounters.query'].rate;
-  data.getmore = deltas['opcounters.getmore'].rate;
-  data.command = deltas['opcounters.command'].rate;
-  data.ins = deltas['opcounters.insert'].rate;
-  data.upd = deltas['opcounters.update'].rate;
-  data.del = deltas['opcounters.delete'].rate;
+  data.intervalSeconds = deltas['timeDelta'];
+  data.queryPS = deltas['opcounters.query'].rate;
+  data.getmorePS = deltas['opcounters.getmore'].rate;
+  data.commandPS = deltas['opcounters.command'].rate;
+  data.insertPS = deltas['opcounters.insert'].rate;
+  data.updatePS = deltas['opcounters.update'].rate;
+  data.deletePS = deltas['opcounters.delete'].rate;
 
-  data.activeRead = finals['globalLock.activeClients.readers'];
-  data.activeWrite = finals['globalLock.activeClients.writers'];
-  data.queuedRead = finals['globalLock.currentQueue.readers'];
-  data.queuedWrite = finals['globalLock.currentQueue.writers'];
+  /*data.activeReaders = finals['globalLock.activeClients.readers'];
+  data.activeWriters = finals['globalLock.activeClients.writers'];
+  data.queuedReaders = finals['globalLock.currentQueue.readers'];
+  data.queuedWriters = finals['globalLock.currentQueue.writers'];*/
   // var lockRe = /locks.*acquireCount.*floatApprox
   //
   // The "time acquiring" counts for locks seem to appoear only after some significant
@@ -164,26 +164,26 @@ mongoTuning.summary = function (sample1, sample2, full) {
   //
   // print(deltas['opLatencies.reads.ops']);
   if (deltas['opLatencies.reads.ops'].delta > 0) {
-    data.readLatency =
-      deltas['opLatencies.reads.latency'].delta /
-      deltas['opLatencies.reads.ops'].delta;
+    data.readLatencyMs =
+      (deltas['opLatencies.reads.latency'].delta /
+      deltas['opLatencies.reads.ops'].delta)/1000;
   } else data.readLatency = 0;
 
   if (deltas['opLatencies.writes.ops'].delta > 0) {
-    data.writeLatency =
-      deltas['opLatencies.writes.latency'].delta /
-      deltas['opLatencies.writes.ops'].delta;
+    data.writeLatencyMs =
+      (deltas['opLatencies.writes.latency'].delta /
+      deltas['opLatencies.writes.ops'].delta)/1000;
   } else data.writeLatency = 0;
 
   if (deltas['opLatencies.commands.ops'].delta > 0) {
-    data.cmdLatency =
-      deltas['opLatencies.commands.latency'].delta /
-      deltas['opLatencies.commands.ops'].delta;
+    data.cmdLatencyMs =
+      (deltas['opLatencies.commands.latency'].delta /
+      deltas['opLatencies.commands.ops'].delta)/1000;
   } else data.cmdLatency = 0;
 
   data.connections = deltas['connections.current'].lastValue;
   data.availableConnections = deltas['connections.available'].firstValue;
-  data.asserts =
+  data.assertsPS =
     deltas['asserts.regular'].rate +
     deltas['asserts.warning'].rate +
     deltas['asserts.msg'].rate +
@@ -194,33 +194,36 @@ mongoTuning.summary = function (sample1, sample2, full) {
   // Memory counters
   // *********************************************************
 
-  data.cacheGets =
+  data.cacheGetsPS =
     deltas['wiredTiger.cache.pages requested from the cache'].rate;
 
-  data.cacheHighWater =
-    deltas['wiredTiger.cache.maximum bytes configured'].lastValue;
+  data.cacheHighWaterMB =
+    deltas['wiredTiger.cache.maximum bytes configured'].lastValue/1048576;
 
-  data.cacheSize =
-    deltas['wiredTiger.cache.bytes currently in the cache'].lastValue;
+  data.cacheSizeMB =
+    deltas['wiredTiger.cache.bytes currently in the cache'].lastValue/1048576;
 
-  data.cacheReadQAvailable =
+  /*data.cacheReadQAvailable =
     deltas['wiredTiger.concurrentTransactions.read.available'].lastValue;
-  data.cacheReadQUssed =
+  data.cacheReadQUsed =
     deltas['wiredTiger.concurrentTransactions.read.out'].lastValue;
 
   data.cacheWriteQAvailable =
     deltas['wiredTiger.concurrentTransactions.write.available'].lastValue;
   data.cacheWriteQUsed =
-    deltas['wiredTiger.concurrentTransactions.write.out'].lastValue;
+    deltas['wiredTiger.concurrentTransactions.write.out'].lastValue;*/
 
-  data.diskBlockReads = deltas['wiredTiger.block-manager.blocks read'].rate;
-  data.diskBlockWrites = deltas['wiredTiger.block-manager.blocks written'].rate;
+  data.diskBlockReadsPS = deltas['wiredTiger.block-manager.blocks read'].rate;
+  data.diskBlockWritesPS = deltas['wiredTiger.block-manager.blocks written'].rate;
 
-  data.logByteRate = deltas['wiredTiger.log.log bytes written'].rate;
+  data.logKBRatePS = deltas['wiredTiger.log.log bytes written'].rate/1024;
 
-  data.logSyncTimeRate =
-    deltas['wiredTiger.log.log sync time duration (usecs)'].rate;
-
+  data.logSyncTimeRateMsPS =
+    deltas['wiredTiger.log.log sync time duration (usecs)'].rate/1000;
+  Object.keys(data).forEach(key=>{
+    if (data[key]%1>.01) 
+      data[key]=data[key].toFixed(4);
+  });
   return data;
 };
 
@@ -230,7 +233,7 @@ mongoTuning.summary = function (sample1, sample2, full) {
  * @param {int} interval - The wait in between server stats samples.
  * @returns {ServerStatsSummary}
  */
-mongoTuning.startSampling = function () {
+mongoTuning.serverStatSample = function () {
   return mongoTuning.serverStatistics();
 };
 
@@ -268,7 +271,7 @@ mongoTuning.searchStats = function (serverStats, regex) {
   return returnArray;
 };
 
-mongoTuning.searchSample = function (sample, regex) {
+mongoTuning.serverStatSearch = function (sample, regex) {
   var returnArray = {};
   Object.keys(sample).forEach((key) => {
     if (key.match(regex)) {
