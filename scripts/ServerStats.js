@@ -233,7 +233,7 @@ mongoTuning.serverStatSummary = function (sample1,sample2) {
  * @param {int} interval - The wait in between server stats samples.
  * @returns {ServerStatsSummary}
  */
-mongoTuning.serverStatSample = function () {
+mongoTuning.startSampling = function () {
   return mongoTuning.serverStatistics();
 };
 

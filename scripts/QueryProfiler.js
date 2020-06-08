@@ -1,5 +1,5 @@
 mongoTuning.profileQuery = () => {
-  let profileQuery = db.system.profile.aggregate([
+  const profileQuery = db.system.profile.aggregate([
     {
       $group: {
         _id: { cursorid: '$cursorid' },
@@ -26,6 +26,22 @@ mongoTuning.profileQuery = () => {
 };
 
 /**
+ * Get details of a query from system.profile using the queryhash
+ *
+ * @param {string} queryHash - The queryHash of the query of interest.
+ *
+ * @returns {queryDetails} query ns, command and basic statistics
+ */
+
+mongoTuning.getQueryByHash = function (queryHash) {
+  return (db.system.profile.findOne(
+       { queryHash },
+       { ns: 1, command: 1, docsExamined: 1,
+         millis: 1, planSummary: 1 }
+     ));
+};
+
+/**
  * Fetch simplified profiling info for a given database and namespace.
  *
  * @param {string} dbName - The name of the database to fetch profiling data for.
@@ -33,16 +49,17 @@ mongoTuning.profileQuery = () => {
  *
  * @returns {ProfilingData} Profiling data for the given namespace (queries only), grouped and simplified.
  */
+
 mongoTuning.getProfileData = function (dbName, collectionName) {
   var mydb = db.getSiblingDB(dbName); // eslint-disable-line
-  var ns = dbName + '.' + collectionName;
-  var profileData = mydb
+  const ns = dbName + '.' + collectionName;
+  const profileData = mydb
     .getSiblingDB(dbName)
     .getCollection('system.profile')
     .aggregate([
       {
         $match: {
-          ns: ns,
+          ns,
           op: 'query',
         },
       },
