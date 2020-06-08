@@ -4,13 +4,13 @@
  * @returns {FlatServerStats} An object containing many different server statistics.
  */
 mongoTuning.serverStatistics = function () {
-  var output = {};
-  var value;
-  var rate;
+  const output = {};
+  let value;
+  let rate;
   output.statistics = [];
   var serverStats = mongoTuning.flattenServerStatus(db.serverStatus()).stats; // eslint-disable-line
-  var uptime = (serverStats.uptimeMillis)/1000; //seconds with precision
-  Object.keys(serverStats).forEach(function (stat) {
+  const uptime = (serverStats.uptimeMillis) / 1000; // seconds with precision
+  Object.keys(serverStats).forEach((stat) => {
     // print(stat);
     value = serverStats[stat];
     rate = null;
@@ -20,7 +20,7 @@ mongoTuning.serverStatistics = function () {
     if (!stat.match(/_mongo/)) {
       output.statistics.push({
         statistic: stat,
-        value: value,
+        value,
         ratePs: rate,
       });
     }
@@ -35,23 +35,23 @@ mongoTuning.serverStatistics = function () {
  * @returns {FlatServerStatus} - Flattened array of server status metrics.
  */
 mongoTuning.flattenServerStatus = function (dbServerStatus) {
-  var flattenedServerStatus = {};
+  const flattenedServerStatus = {};
   flattenedServerStatus.stats = {};
 
   function internalflattenServerStatus(serverStatus, rootTerm) {
-    var prefix = '';
+    let prefix = '';
     if (arguments.length > 1) {
       prefix = rootTerm + '.';
     }
-    Object.getOwnPropertyNames(serverStatus).forEach(function (key) {
+    Object.getOwnPropertyNames(serverStatus).forEach((key) => {
       if (key !== '_mongo') {
-        var value = serverStatus[key];
+        let value = serverStatus[key];
         // eslint-disable-next-line
         if (value.constructor === NumberLong) {
           value = value.toNumber();
         }
-        var valtype = typeof value;
-        var fullkey = prefix + key;
+        const valtype = typeof value;
+        const fullkey = prefix + key;
         // print(key, value, valtype, fullkey);
         if (valtype == 'object') {
           // recurse into nested objects
@@ -83,8 +83,8 @@ mongoTuning.simpleStats = function () {
  * @returns {SimpleServerStatus} - A single object with key value pairs for each stat.
  */
 mongoTuning.convertStat = function (serverStat) {
-  var returnStat = {};
-  serverStat.statistics.forEach(function (stat) {
+  const returnStat = {};
+  serverStat.statistics.forEach((stat) => {
     returnStat[stat.statistic] = stat.value;
   });
   return returnStat;
@@ -95,14 +95,14 @@ mongoTuning.convertStat = function (serverStat) {
  *
  */
 mongoTuning.serverStatDeltas = function (instat1, instat2) {
-  var stat1 = mongoTuning.convertStat(instat1);
-  var stat2 = mongoTuning.convertStat(instat2);
-  var delta;
-  var rate;
-  var statDelta = {};
+  const stat1 = mongoTuning.convertStat(instat1);
+  const stat2 = mongoTuning.convertStat(instat2);
+  let delta;
+  let rate;
+  const statDelta = {};
   statDelta.timeDelta = stat2.uptime - stat1.uptime;
 
-  Object.keys(stat2).forEach(function (key) {
+  Object.keys(stat2).forEach((key) => {
     // print(key,typeof stat2[key]);
     if (typeof stat2[key] === 'number') {
       delta = stat2[key] - stat1[key];
@@ -114,8 +114,8 @@ mongoTuning.serverStatDeltas = function (instat1, instat2) {
     statDelta[key] = {
       lastValue: stat2[key],
       firstValue: stat1[key],
-      delta: delta,
-      rate: rate,
+      delta,
+      rate,
     };
   });
   return statDelta;
@@ -128,23 +128,23 @@ mongoTuning.serverStatDeltas = function (instat1, instat2) {
  * @param {FlatServerStats} sample2 - Pass in some stats (for example from mongoTuning.serverStats()) to compare with sample1
  * @returns {ServerStatsSummary}
  */
-mongoTuning.serverStatSummary = function (sample1,sample2) {
+mongoTuning.serverStatSummary = function (sample1, sample2) {
   // TODO: Statistic names change over versions
-  var data = {};
-  var deltas = mongoTuning.serverStatDeltas(sample1, sample2);
+  const data = {};
+  const deltas = mongoTuning.serverStatDeltas(sample1, sample2);
 
-  var finals = mongoTuning.convertStat(sample2);
+  const finals = mongoTuning.convertStat(sample2);
 
   // *********************************************
   //  Network counters
   // *********************************************
-  data.netKBInPS = deltas['network.bytesIn'].rate/1024;
-  data.netKBOutPS = deltas['network.bytesOut'].rate/1024;
+  data.netKBInPS = deltas['network.bytesIn'].rate / 1024;
+  data.netKBOutPS = deltas['network.bytesOut'].rate / 1024;
 
   // ********************************************
   // Activity counters
   // ********************************************
-  data.intervalSeconds = deltas['timeDelta'];
+  data.intervalSeconds = deltas.timeDelta;
   data.queryPS = deltas['opcounters.query'].rate;
   data.getmorePS = deltas['opcounters.getmore'].rate;
   data.commandPS = deltas['opcounters.command'].rate;
@@ -152,7 +152,7 @@ mongoTuning.serverStatSummary = function (sample1,sample2) {
   data.updatePS = deltas['opcounters.update'].rate;
   data.deletePS = deltas['opcounters.delete'].rate;
 
-  /*data.activeReaders = finals['globalLock.activeClients.readers'];
+  /* data.activeReaders = finals['globalLock.activeClients.readers'];
   data.activeWriters = finals['globalLock.activeClients.writers'];
   data.queuedReaders = finals['globalLock.currentQueue.readers'];
   data.queuedWriters = finals['globalLock.currentQueue.writers'];*/
@@ -166,19 +166,19 @@ mongoTuning.serverStatSummary = function (sample1,sample2) {
   if (deltas['opLatencies.reads.ops'].delta > 0) {
     data.readLatencyMs =
       (deltas['opLatencies.reads.latency'].delta /
-      deltas['opLatencies.reads.ops'].delta)/1000;
+      deltas['opLatencies.reads.ops'].delta) / 1000;
   } else data.readLatency = 0;
 
   if (deltas['opLatencies.writes.ops'].delta > 0) {
     data.writeLatencyMs =
       (deltas['opLatencies.writes.latency'].delta /
-      deltas['opLatencies.writes.ops'].delta)/1000;
+      deltas['opLatencies.writes.ops'].delta) / 1000;
   } else data.writeLatency = 0;
 
   if (deltas['opLatencies.commands.ops'].delta > 0) {
     data.cmdLatencyMs =
       (deltas['opLatencies.commands.latency'].delta /
-      deltas['opLatencies.commands.ops'].delta)/1000;
+      deltas['opLatencies.commands.ops'].delta) / 1000;
   } else data.cmdLatency = 0;
 
   data.connections = deltas['connections.current'].lastValue;
@@ -198,12 +198,12 @@ mongoTuning.serverStatSummary = function (sample1,sample2) {
     deltas['wiredTiger.cache.pages requested from the cache'].rate;
 
   data.cacheHighWaterMB =
-    deltas['wiredTiger.cache.maximum bytes configured'].lastValue/1048576;
+    deltas['wiredTiger.cache.maximum bytes configured'].lastValue / 1048576;
 
   data.cacheSizeMB =
-    deltas['wiredTiger.cache.bytes currently in the cache'].lastValue/1048576;
+    deltas['wiredTiger.cache.bytes currently in the cache'].lastValue / 1048576;
 
-  /*data.cacheReadQAvailable =
+  /* data.cacheReadQAvailable =
     deltas['wiredTiger.concurrentTransactions.read.available'].lastValue;
   data.cacheReadQUsed =
     deltas['wiredTiger.concurrentTransactions.read.out'].lastValue;
@@ -216,13 +216,12 @@ mongoTuning.serverStatSummary = function (sample1,sample2) {
   data.diskBlockReadsPS = deltas['wiredTiger.block-manager.blocks read'].rate;
   data.diskBlockWritesPS = deltas['wiredTiger.block-manager.blocks written'].rate;
 
-  data.logKBRatePS = deltas['wiredTiger.log.log bytes written'].rate/1024;
+  data.logKBRatePS = deltas['wiredTiger.log.log bytes written'].rate / 1024;
 
   data.logSyncTimeRateMsPS =
-    deltas['wiredTiger.log.log sync time duration (usecs)'].rate/1000;
-  Object.keys(data).forEach(key=>{
-    if (data[key]%1>.01) 
-      data[key]=data[key].toFixed(4);
+    deltas['wiredTiger.log.log sync time duration (usecs)'].rate / 1000;
+  Object.keys(data).forEach((key) => {
+    if (data[key] % 1 > 0.01) { data[key] = data[key].toFixed(4); }
   });
   return data;
 };
@@ -257,7 +256,7 @@ mongoTuning.stopSampling = function (sampleStart, fullStats) {
 };
 
 mongoTuning.searchStats = function (serverStats, regex) {
-  var returnArray = [];
+  const returnArray = [];
   if (serverStats.statistics) {
     serverStats.statistics.forEach((stat) => {
       if (stat.statistic.match(regex)) {
@@ -272,7 +271,7 @@ mongoTuning.searchStats = function (serverStats, regex) {
 };
 
 mongoTuning.serverStatSearch = function (sample, regex) {
-  var returnArray = {};
+  const returnArray = {};
   Object.keys(sample).forEach((key) => {
     if (key.match(regex)) {
       returnArray[key] = sample[key];
