@@ -69,11 +69,17 @@ mongoTuning.prepExecutionStats = (explainInput) => {
     if (explainInput.hasNext()) {
       return mongoTuning.prepExecutionStats(explainInput.next());
     }
+  } else if (explainInput.stages) {
+
   } else return { ok: 0, error: 'No executionStats found' };
 };
 
 mongoTuning.executionStats = (execStatsIn) => {
+  if(execStatsIn.stages) {
+    return aggregationExecutionStats(execStatsIn);
+  }
   const execStats = mongoTuning.prepExecutionStats(execStatsIn);
+  printjson(execStats);
   let stepNo = 1;
   print('\n');
   const printSpaces = function (n) {
@@ -102,6 +108,59 @@ mongoTuning.executionStats = (execStatsIn) => {
     extraData += ')';
     print(stepNo++, printSpaces(depth), step.stage, extraData);
   };
+  printInputStage(execStats.executionStages, 1);
+  print(
+    '\nTotals:  ms:',
+    execStats.executionTimeMillis,
+    ' keys:',
+    execStats.totalKeysExamined,
+    ' Docs:',
+    execStats.totalDocsExamined
+  );
+};
+
+mongoTuning.aggregationExecutionStats = (execStatsIn) => {
+  let execStats;
+  if(execStatsIn.stages && execStatsIn.stages[0]["$cursor"] && execStatsIn.stages[0]["$cursor"].executionStats){
+    execStats = execStatsIn.stages[0]
+  }
+  let stepNo = 1;
+  print('\n');
+  const printSpaces = function (n) {
+    let s = '';
+    for (let i = 1; i < n; i++) {
+      s += ' ';
+    }
+    return s;
+  };
+  var printInputStage = function (step, depth) {
+    if ('inputStage' in step) {
+      printInputStage(step.inputStage, depth + 1);
+    }
+    if ('inputStages' in step) {
+      step.inputStages.forEach(function (inputStage) {
+        printInputStage(inputStage, depth + 1);
+      });
+    }
+    let extraData = '(';
+    if ('indexName' in step) extraData += ' ' + step.indexName;
+    if ('executionTimeMillisEstimate' in step) {
+      extraData += ' ms:' + step.executionTimeMillisEstimate;
+    }
+    if ('keysExamined' in step) extraData += ' keys:' + step.keysExamined;
+    if ('docsExamined' in step) extraData += ' docs:' + step.docsExamined;
+    extraData += ')';
+    print(stepNo++, printSpaces(depth), step.stage, extraData);
+  };
+  var printAggStage = function (stage, depth) {
+    let extraData = '('
+    if ('executionTimeMillisEstimate' in step) {
+      extraData += ' ms:' + step.executionTimeMillisEstimate;
+    }
+    if ('docsExamined' in step) extraData += ' docs:' + step.docsExamined;
+    extraData += ')';
+    print(stepNo++, printSpaces(depth), step.stage, extraData);
+  }
   printInputStage(execStats.executionStages, 1);
   print(
     '\nTotals:  ms:',
