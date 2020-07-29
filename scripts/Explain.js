@@ -70,12 +70,11 @@ mongoTuning.prepExecutionStats = (explainInput) => {
       return mongoTuning.prepExecutionStats(explainInput.next());
     }
   } else if (explainInput.stages) {
-
   } else return { ok: 0, error: 'No executionStats found' };
 };
 
 mongoTuning.executionStats = (execStatsIn) => {
-  if(execStatsIn.stages) {
+  if (execStatsIn.stages) {
     return aggregationExecutionStats(execStatsIn);
   }
   const execStats = mongoTuning.prepExecutionStats(execStatsIn);
@@ -120,11 +119,15 @@ mongoTuning.executionStats = (execStatsIn) => {
 };
 
 mongoTuning.aggregationExecutionStats = (execStatsIn) => {
-  let execStats;
-  if(execStatsIn.stages && execStatsIn.stages[0]["$cursor"] && execStatsIn.stages[0]["$cursor"].executionStats){
-    execStats = execStatsIn.stages[0]
-  }
+  let execStats = {};
   let stepNo = 1;
+  if (
+    execStatsIn.stages &&
+    execStatsIn.stages[0]['$cursor'] &&
+    execStatsIn.stages[0]['$cursor'].executionStats
+  ) {
+    execStats = execStatsIn.stages[0]['$cursor'].executionStats;
+  }
   print('\n');
   const printSpaces = function (n) {
     let s = '';
@@ -148,20 +151,35 @@ mongoTuning.aggregationExecutionStats = (execStatsIn) => {
       extraData += ' ms:' + step.executionTimeMillisEstimate;
     }
     if ('keysExamined' in step) extraData += ' keys:' + step.keysExamined;
-    if ('docsExamined' in step) extraData += ' docs:' + step.docsExamined;
+    if ('docsExamined' in step)
+      extraData += ' docsExamined:' + step.docsExamined;
+    if ('nReturned' in step) extraData += ' nReturned:' + step.nReturned;
     extraData += ')';
     print(stepNo++, printSpaces(depth), step.stage, extraData);
   };
+
   var printAggStage = function (stage, depth) {
-    let extraData = '('
-    if ('executionTimeMillisEstimate' in step) {
-      extraData += ' ms:' + step.executionTimeMillisEstimate;
+    let extraData = '(';
+    if ('executionTimeMillisEstimate' in stage) {
+      extraData += ' ms:' + stage.executionTimeMillisEstimate;
     }
-    if ('docsExamined' in step) extraData += ' docs:' + step.docsExamined;
+    if ('docsExamined' in stage) extraData += ' examined:' + stage.docsExamined;
+    if ('nReturned' in stage) extraData += ' returned:' + stage.nReturned;
     extraData += ')';
-    print(stepNo++, printSpaces(depth), step.stage, extraData);
-  }
+    print(
+      stepNo++,
+      printSpaces(depth),
+      Object.keys(stage)
+        .find((key) => key.match(/$/))
+        .toUpperCase(),
+      extraData
+    );
+  };
+  printjson(execStatsIn);
   printInputStage(execStats.executionStages, 1);
+  for (var stageNum = 1; stageNum < execStatsIn.stages.length; stageNum++) {
+    printAggStage(execStatsIn.stages[stageNum], 1);
+  }
   print(
     '\nTotals:  ms:',
     execStats.executionTimeMillis,
