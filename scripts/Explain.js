@@ -155,7 +155,7 @@ mongoTuning.aggregationExecutionStats = (execStatsIn) => {
       extraData += ' docsExamined:' + step.docsExamined;
     if ('nReturned' in step) extraData += ' nReturned:' + step.nReturned;
     extraData += ')';
-    print(stepNo++, printSpaces(depth), step.stage, extraData);
+    print(stepNo++, printSpaces(1), step.stage, extraData);
   };
 
   var printAggStage = function (stage, depth) {
@@ -175,7 +175,6 @@ mongoTuning.aggregationExecutionStats = (execStatsIn) => {
       extraData
     );
   };
-  printjson(execStatsIn);
   printInputStage(execStats.executionStages, 1);
   for (var stageNum = 1; stageNum < execStatsIn.stages.length; stageNum++) {
     printAggStage(execStatsIn.stages[stageNum], 1);
