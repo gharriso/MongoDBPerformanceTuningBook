@@ -119,6 +119,7 @@ mongoTuning.executionStats = (execStatsIn) => {
 };
 
 mongoTuning.aggregationExecutionStats = (execStatsIn) => {
+  printjson(execStatsIn);
   let execStats = {};
   let stepNo = 1;
   if (
@@ -127,6 +128,8 @@ mongoTuning.aggregationExecutionStats = (execStatsIn) => {
     execStatsIn.stages[0]['$cursor'].executionStats
   ) {
     execStats = execStatsIn.stages[0]['$cursor'].executionStats;
+  } else if (execStatsIn.executionStats) {
+    execStats = execStatsIn.executionStats;
   }
   print('\n');
   const printSpaces = function (n) {
@@ -175,10 +178,18 @@ mongoTuning.aggregationExecutionStats = (execStatsIn) => {
       extraData
     );
   };
-  printInputStage(execStats.executionStages, 1);
-  for (var stageNum = 1; stageNum < execStatsIn.stages.length; stageNum++) {
-    printAggStage(execStatsIn.stages[stageNum], 1);
+  if (execStats.executionStages) {
+    printInputStage(execStats.executionStages, 1);
   }
+
+  if (execStatsIn && execStatsIn.stages) {
+    for (var stageNum = 1; stageNum < execStatsIn.stages.length; stageNum++) {
+      if (execStatsIn.stages[stageNum]) {
+        printAggStage(execStatsIn.stages[stageNum], 1);
+      }
+    }
+  }
+
   print(
     '\nTotals:  ms:',
     execStats.executionTimeMillis,
