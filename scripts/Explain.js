@@ -121,7 +121,7 @@ mongoTuning.executionStats = (execStatsIn) => {
 };
 
 mongoTuning.aggregationExecutionStats = (execStatsIn) => {
-  printjson(execStatsIn);
+  //printjson(execStatsIn);
   let execStats = {};
   let stepNo = 1;
   if (
