@@ -5,3 +5,4 @@ load('./scripts/ServerStats.js');
 load('./scripts/QueryProfiler.js');
 load('./scripts/CurrentOp.js');
 load('./scripts/Explain.js');
+load('./scripts/compact.js');

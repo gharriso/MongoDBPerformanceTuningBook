@@ -99,6 +99,8 @@ mongoTuning.executionStats = (execStatsIn) => {
     }
     if ('keysExamined' in step) extraData += ' keys:' + step.keysExamined;
     if ('docsExamined' in step) extraData += ' docs:' + step.docsExamined;
+    if ('nWouldModify' in step && step.nWouldModify!==false) extraData += ' upd:' + step.nWouldModify;
+    if ('wouldInsert' in step && step.wouldInsert!==false) extraData += ' ins:' + step.wouldInsert;
     extraData += ')';
     print(stepNo++, printSpaces(depth), step.stage, extraData);
   };
