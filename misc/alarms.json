@@ -1,0 +1,113 @@
+{
+  "simpleThresholds": [
+    {
+      "metric": "query_scanToDocRatio",
+      "l1": 100,
+      "l2": 1000,
+      "alarmPath": "alarm.mongo.scanToDocRatio",
+      "warningMessage": "%d documents scanned for every document returned: review Indexes and slow queries",
+      "notes": "large scans - enronloop.js for instance will cause this alarm"
+    },
+    {
+      "metric": "connections_inusePct",
+      "l1": 80,
+      "l2": 90,
+      "alarmPath": "alarm.mongo.connectionsInUse",
+      "warningMessage": "%d%% of connections are in use",
+      "notes": "use makeconnections to cause this alarm"
+    },
+    {
+      "metric": "queue_queuedPct",
+      "l1": 20,
+      "l2": 90,
+      "alarmPath": "alarm.mongo.queue_queuedPct",
+      "warningMessage": "%d%% of read write operations are queued. Possible lock contention",
+      "notes": "inccounter.sh with 500+ connections may cause this alarm"
+    },
+    {
+      "metric": "wtTransactions_readPct",
+      "l1": 50,
+      "l2": 90,
+      "alarmPath": "alarm.wiredtiger.wtTransactions_readPct",
+      "warningMessage": "%d%% of wiredTiger read transaction tickets are in use. Consider increasing wiredTigerConcurrentReadTransactions",
+      "notes": "inccounter.sh with 500+ connections may cause this alarm.  Also you can reduce the number of tickets with wiredTigerConcurrentReadTransactions"
+    },
+    {
+      "metric": "wtTransactions_writePct",
+      "l1": 50,
+      "l2": 90,
+      "alarmPath": "alarm.wiredtiger.wtTransactions_writePct",
+      "warningMessage": "%d%% of wiredTiger write transaction tickets are in use. Consider increasing wiredTigerConcurrentWriteTransactions ",
+      "notes": "inccounter.sh with 500+ connections may cause this alarm.  Also you can reduce the number of tickets with wiredTigerConcurrentWriteTransactions"
+    },
+    {
+      "metric": "wtIO_logSyncLatencyUs",
+      "l1": 10000,
+      "l2": 50000,
+      "alarmPath": "alarm.disk.wtIO_logSyncLatencyUs",
+      "warningMessage": "wiredTiger log (sync) writes are taking %d microseconds on average. Consider tuning disk layout/type",
+      "notes": "This alarm should fire under moderate load on our underpowered system"
+    },
+    {
+      "metric": "wtIO_writeLatencyUs",
+      "l1": 2000,
+      "l2": 10000,
+      "alarmPath": "alarm.disk.wtIO_writeLatencyUs",
+      "warningMessage": "wiredTiger disk writes are taking %d microseconds on average. Consider tuning disk layout/type",
+      "notes": "This alarm should fire under moderate load on our underpowered system"
+    },
+    {
+      "metric": "wtIO_readLatencyUs",
+      "l1": 2000,
+      "l2": 10000,
+      "alarmPath": "alarm.disk.wtIO_readLatencyUs",
+      "warningMessage": "wiredTiger disk reads are taking %d microseconds on average. Consider tuning disk layout/type",
+      "notes": "This alarm should fire under moderate load on our underpowered system"
+    },
+    {
+      "metric": "wtCache_MissPct",
+      "l1": 40,
+      "l2": 80,
+      "alarmPath": "alarm.wiredtiger.wtCache_MissPct",
+      "warningMessage": "Required data is not found in wiredTiger cache in %d%% of requests. Consider increasing cache size",
+      "notes": "This alarm should fire under moderate load providing you reduce the wiredTiger cache size"
+    }
+  ],
+  "standardDeviationThresholds": {
+    "minimumSamples": 20,
+    "thresholds": [
+      {
+        "metric": "connections_current",
+        "l1": 3,
+        "l2": 4,
+        "alarmPath": "alarm.mongo.connections_current",
+        "warningMessage": "You have an unusually high number of connections (mean=%.2f,sd=%.2f, current=%d)",
+        "notes": "Use node makeconnections.js to fire"
+      },
+      {
+        "metric": "latency_readWaitUsPs",
+        "l1": 2,
+        "l2": 3,
+        "alarmPath": "alarm.mongo.connections_current",
+        "warningMessage": "Connections are spending an unusually large amount of time waiting for reads (mean=%.2f,sd=%.2f, current=%d us/s)",
+        "notes": "randCrud.js, randQry.js enronloop2.js"
+      },
+      {
+        "metric": "latency_writeWaitUsPs",
+        "l1": 2,
+        "l2": 3,
+        "alarmPath": "alarm.mongo.connections_current",
+        "warningMessage": "Connections are spending an unusually large amount of time waiting for writes (mean=%.2f,sd=%.2f, current=%d us/s)",
+        "notes": "randCrud.js, randQry.js enronloop2.js"
+      },
+      {
+        "metric": "wtCache_evictionsPs",
+        "l1": 2,
+        "l2": 3,
+        "alarmPath": "alarm.wiredtiger.wtCache_evictionsPs",
+        "warningMessage": "Rate of evictions from wiredTiger cache is unusually high (mean=%.2f,sd=%.2f, current=%d evictions/s)",
+        "notes": "randCrud.js, randQry.js enronloop2.js"
+      }
+    ]
+  }
+}
