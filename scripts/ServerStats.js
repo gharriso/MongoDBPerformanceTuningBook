@@ -9,7 +9,7 @@ mongoTuning.serverStatistics = function () {
   let rate;
   output.statistics = [];
   var serverStats = mongoTuning.flattenServerStatus(db.serverStatus()).stats; // eslint-disable-line
-  const uptime = (serverStats.uptimeMillis) / 1000; // seconds with precision
+  const uptime = serverStats.uptimeMillis / 1000; // seconds with precision
   Object.keys(serverStats).forEach((stat) => {
     // print(stat);
     value = serverStats[stat];
@@ -106,7 +106,7 @@ mongoTuning.serverStatDeltas = function (instat1, instat2) {
     // print(key,typeof stat2[key]);
     if (typeof stat2[key] === 'number') {
       delta = stat2[key] - stat1[key];
-      rate = (delta / statDelta.timeDelta);
+      rate = delta / statDelta.timeDelta;
     } else {
       delta = null;
       rate = null;
@@ -165,20 +165,23 @@ mongoTuning.serverStatSummary = function (sample1, sample2) {
   // print(deltas['opLatencies.reads.ops']);
   if (deltas['opLatencies.reads.ops'].delta > 0) {
     data.readLatencyMs =
-      (deltas['opLatencies.reads.latency'].delta /
-      deltas['opLatencies.reads.ops'].delta) / 1000;
+      deltas['opLatencies.reads.latency'].delta /
+      deltas['opLatencies.reads.ops'].delta /
+      1000;
   } else data.readLatency = 0;
 
   if (deltas['opLatencies.writes.ops'].delta > 0) {
     data.writeLatencyMs =
-      (deltas['opLatencies.writes.latency'].delta /
-      deltas['opLatencies.writes.ops'].delta) / 1000;
+      deltas['opLatencies.writes.latency'].delta /
+      deltas['opLatencies.writes.ops'].delta /
+      1000;
   } else data.writeLatency = 0;
 
   if (deltas['opLatencies.commands.ops'].delta > 0) {
     data.cmdLatencyMs =
-      (deltas['opLatencies.commands.latency'].delta /
-      deltas['opLatencies.commands.ops'].delta) / 1000;
+      deltas['opLatencies.commands.latency'].delta /
+      deltas['opLatencies.commands.ops'].delta /
+      1000;
   } else data.cmdLatency = 0;
 
   data.connections = deltas['connections.current'].lastValue;
@@ -214,14 +217,17 @@ mongoTuning.serverStatSummary = function (sample1, sample2) {
     deltas['wiredTiger.concurrentTransactions.write.out'].lastValue;*/
 
   data.diskBlockReadsPS = deltas['wiredTiger.block-manager.blocks read'].rate;
-  data.diskBlockWritesPS = deltas['wiredTiger.block-manager.blocks written'].rate;
+  data.diskBlockWritesPS =
+    deltas['wiredTiger.block-manager.blocks written'].rate;
 
   data.logKBRatePS = deltas['wiredTiger.log.log bytes written'].rate / 1024;
 
   data.logSyncTimeRateMsPS =
     deltas['wiredTiger.log.log sync time duration (usecs)'].rate / 1000;
   Object.keys(data).forEach((key) => {
-    if (data[key] % 1 > 0.01) { data[key] = data[key].toFixed(4); }
+    if (data[key] % 1 > 0.01) {
+      data[key] = data[key].toFixed(4);
+    }
   });
   return data;
 };
@@ -240,6 +246,7 @@ mongoTuning.startSampling = function () {
  * Takes two server stat samples between the interval and them summarizes them.
  *
  * @param {Object} sampleStart - The original sample that was taken.
+ * @param {boolean} fullStats - Return the full stats or not.
  * @returns {ServerStatsSummary}
  */
 mongoTuning.stopSampling = function (sampleStart, fullStats) {
@@ -248,7 +255,7 @@ mongoTuning.stopSampling = function (sampleStart, fullStats) {
       'stopSample requires a sample object, created using mongoTuning.startSampling'
     );
   }
-  return mongoTuning.summary(
+  return mongoTuning.serverStatSummary(
     sampleStart,
     mongoTuning.serverStatistics(),
     fullStats
