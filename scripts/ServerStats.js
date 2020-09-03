@@ -152,10 +152,10 @@ mongoTuning.serverStatSummary = function (sample1, sample2) {
   data.updatePS = deltas['opcounters.update'].rate;
   data.deletePS = deltas['opcounters.delete'].rate;
 
-  /* data.activeReaders = finals['globalLock.activeClients.readers'];
+  data.activeReaders = finals['globalLock.activeClients.readers'];
   data.activeWriters = finals['globalLock.activeClients.writers'];
   data.queuedReaders = finals['globalLock.currentQueue.readers'];
-  data.queuedWriters = finals['globalLock.currentQueue.writers'];*/
+  data.queuedWriters = finals['globalLock.currentQueue.writers'];
   // var lockRe = /locks.*acquireCount.*floatApprox
   //
   // The "time acquiring" counts for locks seem to appoear only after some significant
@@ -285,4 +285,132 @@ mongoTuning.serverStatSearch = function (sample, regex) {
     }
   });
   return returnArray;
+};
+
+mongoTuning.monitorServer = function (duration) {
+  let runningStats, initialStats;
+  let runTime = 0;
+  initialStats = mongoTuning.serverStatistics();
+  sleep(duration);
+  finalStats = mongoTuning.serverStatistics();
+  const deltas = mongoTuning.serverStatDeltas(initialStats, finalStats);
+  const finals = mongoTuning.convertStat(finalStats);
+  return { deltas, finals };
+};
+
+mongoTuning.monitorServerDerived = function (duration, regex) {
+  const monitoringData = mongoTuning.monitorServer(duration);
+  const { deltas, finals } = monitoringData;
+  const data = {};
+  // *********************************************
+  //  Network counters
+  // *********************************************
+
+  data.netKBInPS = deltas['network.bytesIn'].rate / 1024;
+  data.netKBOutPS = deltas['network.bytesOut'].rate / 1024;
+
+  // ********************************************
+  // Activity counters
+  // ********************************************
+  data.intervalSeconds = deltas.timeDelta;
+  data.queryPS = deltas['opcounters.query'].rate;
+  data.getmorePS = deltas['opcounters.getmore'].rate;
+  data.commandPS = deltas['opcounters.command'].rate;
+  data.insertPS = deltas['opcounters.insert'].rate;
+  data.updatePS = deltas['opcounters.update'].rate;
+  data.deletePS = deltas['opcounters.delete'].rate;
+
+  // ********************************************
+  // Document counters
+  // ********************************************
+  data.docsReturnedPS = deltas['metrics.document.returned'].rate;
+  data.docsUpdatedPS = deltas['metrics.document.updated'].rate;
+  data.docsInsertedPS = deltas['metrics.document.inserted'].rate;
+  data.ixscanDocsPS = deltas['metrics.queryExecutor.scanned'].rate;
+  data.collscanDocsPS = deltas['metrics.queryExecutor.scannedObjects'].rate;
+
+  if (deltas['opLatencies.reads.ops'].delta > 0) {
+    data.readLatencyMs =
+      deltas['opLatencies.reads.latency'].delta /
+      deltas['opLatencies.reads.ops'].delta /
+      1000;
+  } else data.readLatency = 0;
+
+  if (deltas['opLatencies.writes.ops'].delta > 0) {
+    data.writeLatencyMs =
+      deltas['opLatencies.writes.latency'].delta /
+      deltas['opLatencies.writes.ops'].delta /
+      1000;
+  } else data.writeLatency = 0;
+
+  if (deltas['opLatencies.commands.ops'].delta > 0) {
+    data.cmdLatencyMs =
+      deltas['opLatencies.commands.latency'].delta /
+      deltas['opLatencies.commands.ops'].delta /
+      1000;
+  } else data.cmdLatency = 0;
+
+  data.connections = deltas['connections.current'].lastValue;
+  data.availableConnections = deltas['connections.available'].firstValue;
+  data.assertsPS =
+    deltas['asserts.regular'].rate +
+    deltas['asserts.warning'].rate +
+    deltas['asserts.msg'].rate +
+    deltas['asserts.user'].rate +
+    deltas['asserts.rollovers'].rate;
+
+  data.activeReaders = finals['globalLock.activeClients.readers'];
+  data.activeWriters = finals['globalLock.activeClients.writers'];
+  data.queuedReaders = finals['globalLock.currentQueue.readers'];
+  data.queuedWriters = finals['globalLock.currentQueue.writers'];
+
+  // *********************************************************
+  // Memory counters
+  // *********************************************************
+
+  data.cacheReadQAvailable =
+    deltas['wiredTiger.concurrentTransactions.read.available'].lastValue;
+  data.cacheReadQUsed =
+    deltas['wiredTiger.concurrentTransactions.read.out'].lastValue;
+
+  data.cacheWriteQAvailable =
+    deltas['wiredTiger.concurrentTransactions.write.available'].lastValue;
+  data.cacheWriteQUsed =
+    deltas['wiredTiger.concurrentTransactions.write.out'].lastValue;
+
+  data.cacheGetsPS =
+    deltas['wiredTiger.cache.pages requested from the cache'].rate;
+
+  data.cacheHighWaterMB =
+    deltas['wiredTiger.cache.maximum bytes configured'].lastValue / 1048576;
+
+  data.cacheSizeMB =
+    deltas['wiredTiger.cache.bytes currently in the cache'].lastValue / 1048576;
+
+  data.diskBlockReadsPS = deltas['wiredTiger.block-manager.blocks read'].rate;
+  data.diskBlockWritesPS =
+    deltas['wiredTiger.block-manager.blocks written'].rate;
+
+  data.logKBRatePS = deltas['wiredTiger.log.log bytes written'].rate / 1024;
+
+  data.logSyncTimeRateMsPS =
+    deltas['wiredTiger.log.log sync time duration (usecs)'].rate / 1000;
+  Object.keys(data).forEach((key) => {
+    if (data[key] % 1 > 0.01) {
+      data[key] = data[key].toFixed(4);
+    }
+  });
+
+  if (regex) {
+    return mongoTuning.serverStatSearch(data, regex);
+  }
+  return data;
+};
+
+mongoTuning.monitorServerRaw = function (duration, regex) {
+  const data = mongoTuning.monitorServer(duration);
+  if (regex) {
+    return mongoTuning.serverStatSearch(data, regex);
+  }
+  return data;
 };
