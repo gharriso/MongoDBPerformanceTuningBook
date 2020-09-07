@@ -288,24 +288,51 @@ mongoTuning.serverStatSearch = function (sample, regex) {
 };
 
 mongoTuning.monitorServer = function (duration) {
-  let runningStats, initialStats;
-  let runTime = 0;
+  let runningStats;
+  let initialStats;
+  const runTime = 0;
   initialStats = mongoTuning.serverStatistics();
   sleep(duration);
   finalStats = mongoTuning.serverStatistics();
   const deltas = mongoTuning.serverStatDeltas(initialStats, finalStats);
   const finals = mongoTuning.convertStat(finalStats);
-  return { deltas, finals };
+  return {
+    deltas,
+    finals
+  };
 };
 
-mongoTuning.monitorServerDerived = function (duration, regex) {
-  const monitoringData = mongoTuning.monitorServer(duration);
-  const { deltas, finals } = monitoringData;
+mongoTuning.keyServerStats = function (durationSeconds, regex) {
+  const monitoringData = mongoTuning.monitorServer(durationSeconds*1000);
+  return(mongoTuning.keyServerStatsFromSample(monitoringData,regex));
+};
+
+mongoTuning.keyServerStatsFromSample = function (monitoringData,regex) {
+ 
+  const data = mongoTuning.derivedStatistics(monitoringData);
+  if (regex) {
+    return mongoTuning.serverStatSearch(data, regex);
+  }
+  return data;
+};
+
+mongoTuning.monitorServerRaw = function (duration, regex) {
+  const data = mongoTuning.monitorServer(duration);
+  if (regex) {
+    return mongoTuning.serverStatSearch(data, regex);
+  }
+  return data;
+};
+mongoTuning.derivedStatistics = function (monitoringData) {
+  const {
+    deltas,
+    finals
+  } = monitoringData;
   const data = {};
+  const descriptions = {};
   // *********************************************
   //  Network counters
   // *********************************************
-
   data.netKBInPS = deltas['network.bytesIn'].rate / 1024;
   data.netKBOutPS = deltas['network.bytesOut'].rate / 1024;
 
@@ -329,26 +356,51 @@ mongoTuning.monitorServerDerived = function (duration, regex) {
   data.ixscanDocsPS = deltas['metrics.queryExecutor.scanned'].rate;
   data.collscanDocsPS = deltas['metrics.queryExecutor.scannedObjects'].rate;
 
+  
+  descriptions.scansToDocumentRatio = 'Ratio of documents scanned to documents returned';
+  if (data.docsReturnedPS > 0) {
+    data.scansToDocumentRatio =
+      (data.ixscanDocsPS +
+        data.collscanDocsPS) /
+        data.docsReturnedPS;
+  } else {
+    data.scansToDocumentRatio = 0;
+  }
+  
+  // ********************************************
+  // Transaction statistics 
+  // ********************************************
+  data.transactionsStartedPS=deltas['transactions.totalStarted'].rate;
+  data.transactionsAbortedPS=deltas['transactions.totalAborted'].rate;
+  data.transactionsCommittedPS=deltas['transactions.totalCommitted'].rate;
+  if (data.transactionsStartedPS>0) {
+    data.transactionAbortPct=data.transactionsAbortedPS*100/
+      data.transactionsStartedPS;
+  } else {
+    data.transactionAbortPct=0;
+  }
+ 
+
   if (deltas['opLatencies.reads.ops'].delta > 0) {
     data.readLatencyMs =
       deltas['opLatencies.reads.latency'].delta /
       deltas['opLatencies.reads.ops'].delta /
       1000;
-  } else data.readLatency = 0;
+  } else { data.readLatency = 0; }
 
   if (deltas['opLatencies.writes.ops'].delta > 0) {
     data.writeLatencyMs =
       deltas['opLatencies.writes.latency'].delta /
       deltas['opLatencies.writes.ops'].delta /
       1000;
-  } else data.writeLatency = 0;
+  } else { data.writeLatency = 0; }
 
   if (deltas['opLatencies.commands.ops'].delta > 0) {
     data.cmdLatencyMs =
       deltas['opLatencies.commands.latency'].delta /
       deltas['opLatencies.commands.ops'].delta /
       1000;
-  } else data.cmdLatency = 0;
+  } else { data.cmdLatency = 0; }
 
   data.connections = deltas['connections.current'].lastValue;
   data.availableConnections = deltas['connections.available'].firstValue;
@@ -367,7 +419,6 @@ mongoTuning.monitorServerDerived = function (duration, regex) {
   // *********************************************************
   // Memory counters
   // *********************************************************
-
   data.cacheReadQAvailable =
     deltas['wiredTiger.concurrentTransactions.read.available'].lastValue;
   data.cacheReadQUsed =
@@ -395,22 +446,12 @@ mongoTuning.monitorServerDerived = function (duration, regex) {
 
   data.logSyncTimeRateMsPS =
     deltas['wiredTiger.log.log sync time duration (usecs)'].rate / 1000;
+
+
   Object.keys(data).forEach((key) => {
     if (data[key] % 1 > 0.01) {
       data[key] = data[key].toFixed(4);
     }
   });
-
-  if (regex) {
-    return mongoTuning.serverStatSearch(data, regex);
-  }
-  return data;
-};
-
-mongoTuning.monitorServerRaw = function (duration, regex) {
-  const data = mongoTuning.monitorServer(duration);
-  if (regex) {
-    return mongoTuning.serverStatSearch(data, regex);
-  }
   return data;
 };
