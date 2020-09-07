@@ -4,7 +4,7 @@
  * @Authors: Michael Harrison (Michael.J.Harrison@outlook.com) and Guy Harrison (Guy.A.Harrison@gmail.com).
  * @Date:   2020-09-03T17:54:50+10:00
  * @Last modified by:   Michael Harrison
- * @Last modified time: 2020-09-07T14:25:18+10:00
+ * @Last modified time: 2020-09-07T20:05:03+10:00
  *
  */
 
@@ -54,14 +54,28 @@ mongoTuning.serverStatistics = function () {
  * @returns {Object} - Data object containing Deltas and final values.
  */
 mongoTuning.monitorServer = function (duration) {
-  let runningStats, initialStats;
-  let runTime = 0;
+  let runningStats;
+  let initialStats;
+  const runTime = 0;
   initialStats = mongoTuning.serverStatistics();
   sleep(duration);
   finalStats = mongoTuning.serverStatistics();
   const deltas = mongoTuning.serverStatDeltas(initialStats, finalStats);
   const finals = mongoTuning.convertStat(finalStats);
   return { deltas, finals };
+};
+
+mongoTuning.keyServerStats = function (durationSeconds, regex) {
+  const monitoringData = mongoTuning.monitorServer(durationSeconds * 1000);
+  return mongoTuning.keyServerStatsFromSample(monitoringData, regex);
+};
+
+mongoTuning.keyServerStatsFromSample = function (monitoringData, regex) {
+  const data = mongoTuning.derivedStatistics(monitoringData);
+  if (regex) {
+    return mongoTuning.serverStatSearch(data, regex);
+  }
+  return data;
 };
 
 /**
@@ -76,7 +90,7 @@ mongoTuning.monitorServerDerived = function (duration, regex) {
     duration = 5000;
   }
   const monitoringData = mongoTuning.monitorServer(duration);
-  const derivedStats = mongoTuning.derivedStats(monitoringData);
+  const derivedStats = mongoTuning.derivedStatistics(monitoringData);
 
   if (regex) {
     return mongoTuning.serverStatSearch(derivedStats, regex);
@@ -238,7 +252,7 @@ mongoTuning.serverStatSearchRaw = function (stats, regex) {
  * @param {Object} serverData - Server data gathered from mongoTuning.monitorServer, should contain deltas and final values.
  * @returns {Object} - Data object containing the derived statistics.
  */
-mongoTuning.derivedStats = function (serverData) {
+mongoTuning.derivedStatistics = function (serverData) {
   const { deltas, finals } = serverData;
   const data = {};
   // *********************************************
@@ -267,6 +281,28 @@ mongoTuning.derivedStats = function (serverData) {
   data.docsInsertedPS = deltas['metrics.document.inserted'].rate;
   data.ixscanDocsPS = deltas['metrics.queryExecutor.scanned'].rate;
   data.collscanDocsPS = deltas['metrics.queryExecutor.scannedObjects'].rate;
+
+  descriptions.scansToDocumentRatio =
+    'Ratio of documents scanned to documents returned';
+  if (data.docsReturnedPS > 0) {
+    data.scansToDocumentRatio =
+      (data.ixscanDocsPS + data.collscanDocsPS) / data.docsReturnedPS;
+  } else {
+    data.scansToDocumentRatio = 0;
+  }
+
+  // ********************************************
+  // Transaction statistics
+  // ********************************************
+  data.transactionsStartedPS = deltas['transactions.totalStarted'].rate;
+  data.transactionsAbortedPS = deltas['transactions.totalAborted'].rate;
+  data.transactionsCommittedPS = deltas['transactions.totalCommitted'].rate;
+  if (data.transactionsStartedPS > 0) {
+    data.transactionAbortPct =
+      (data.transactionsAbortedPS * 100) / data.transactionsStartedPS;
+  } else {
+    data.transactionAbortPct = 0;
+  }
 
   if (deltas['opLatencies.reads.ops'].delta > 0) {
     data.readLatencyMs =
@@ -334,6 +370,7 @@ mongoTuning.derivedStats = function (serverData) {
 
   data.logSyncTimeRateMsPS =
     deltas['wiredTiger.log.log sync time duration (usecs)'].rate / 1000;
+
   Object.keys(data).forEach((key) => {
     if (data[key] % 1 > 0.01) {
       data[key] = data[key].toFixed(4);
