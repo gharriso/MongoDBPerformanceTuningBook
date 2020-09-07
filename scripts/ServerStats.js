@@ -4,9 +4,11 @@
  * @Authors: Michael Harrison (Michael.J.Harrison@outlook.com) and Guy Harrison (Guy.A.Harrison@gmail.com).
  * @Date:   2020-09-03T17:54:50+10:00
  * @Last modified by:   Michael Harrison
- * @Last modified time: 2020-09-07T13:59:15+10:00
+ * @Last modified time: 2020-09-07T14:25:18+10:00
  *
  */
+
+const mongoTuning = {};
 
 //
 // ─── DATA GATHERING ─────────────────────────────────────────────────────────────
@@ -77,7 +79,7 @@ mongoTuning.monitorServerDerived = function (duration, regex) {
   const derivedStats = mongoTuning.derivedStats(monitoringData);
 
   if (regex) {
-    return mongoTuning.serverStatSearch(dervidStats, regex);
+    return mongoTuning.serverStatSearch(derivedStats, regex);
   }
   return data;
 };
@@ -95,7 +97,7 @@ mongoTuning.monitorServerRaw = function (duration, regex) {
   }
   const monitoringData = mongoTuning.monitorServer(duration);
   if (regex) {
-    return mongoTuning.serverStatSearch(monitoringData, regex);
+    return mongoTuning.serverStatSearchRaw(monitoringData, regex);
   }
   return data;
 };
@@ -191,7 +193,7 @@ mongoTuning.serverStatDeltas = function (initialStats, finalStats) {
 };
 
 /**
- * Simple helper function for searching server stats for matching keys.
+ * Simple helper function for searching derived server stats for matching keys.
  *
  * @param {Object} stats - The server statistics to search.
  * @param {String} regex - Regex to search for statistic keys.
@@ -202,6 +204,30 @@ mongoTuning.serverStatSearch = function (stats, regex) {
   Object.keys(stats).forEach((key) => {
     if (key.match(regex)) {
       returnArray[key] = stats[key];
+    }
+  });
+  return returnArray;
+};
+
+/**
+ * Simple helper function for searching raw server stats for matching keys.
+ *
+ * @param {Object} stats - The server statistics to search.
+ * @param {String} regex - Regex to search for statistic keys.
+ * @returns {Array<Object>} - An array of matching key value pairs.
+ */
+mongoTuning.serverStatSearchRaw = function (stats, regex) {
+  const returnArray = { deltas: {}, finals: {} };
+  // First filter deltas.
+  Object.keys(stats.deltas).forEach((key) => {
+    if (key.match(regex)) {
+      returnArray.deltas[key] = stats.deltas[key];
+    }
+  });
+  // Then filter finals
+  Object.keys(stats.finals).forEach((key) => {
+    if (key.match(regex)) {
+      returnArray.finals[key] = stats.finals[key];
     }
   });
   return returnArray;
