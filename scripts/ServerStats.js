@@ -1,3 +1,16 @@
+/*
+ * Server Statistic helper functions for the Apress book "MongoDB Performance Tuning"
+ *
+ * @Authors: Michael Harrison (Michael.J.Harrison@outlook.com) and Guy Harrison (Guy.A.Harrison@gmail.com).
+ * @Date:   2020-09-03T17:54:50+10:00
+ * @Last modified by:   Michael Harrison
+ * @Last modified time: 2020-09-07T13:59:15+10:00
+ *
+ */
+
+//
+// ─── DATA GATHERING ─────────────────────────────────────────────────────────────
+//
 /**
  * Base function that will collect and shape raw server statistics data.
  *
@@ -27,6 +40,69 @@ mongoTuning.serverStatistics = function () {
   });
   return output;
 };
+
+//
+// ─── MONITORING ─────────────────────────────────────────────────────────────────
+//
+/**
+ * Helper function for monitoring the MongoDB server over the duration and then
+ * calculating delta and final values across the duration for key statistics.
+ *
+ * @param {int} duration - How long to monitor the server for.
+ * @returns {Object} - Data object containing Deltas and final values.
+ */
+mongoTuning.monitorServer = function (duration) {
+  let runningStats, initialStats;
+  let runTime = 0;
+  initialStats = mongoTuning.serverStatistics();
+  sleep(duration);
+  finalStats = mongoTuning.serverStatistics();
+  const deltas = mongoTuning.serverStatDeltas(initialStats, finalStats);
+  const finals = mongoTuning.convertStat(finalStats);
+  return { deltas, finals };
+};
+
+/**
+ * Monitor the MongoDB server for a given duration and return some derived statistics.
+ *
+ * @param {int} duration - How many milliseconds to monitor the server for.
+ * @param {string} regex - OPTIONAL - A string to perform a match against returned statistic keys.
+ * @returns {Object} - An object containing the derived statistics matching the regex if given.
+ */
+mongoTuning.monitorServerDerived = function (duration, regex) {
+  if (!duration) {
+    duration = 5000;
+  }
+  const monitoringData = mongoTuning.monitorServer(duration);
+  const derivedStats = mongoTuning.derivedStats(monitoringData);
+
+  if (regex) {
+    return mongoTuning.serverStatSearch(dervidStats, regex);
+  }
+  return data;
+};
+
+/**
+ * Monitor the MongoDB server for a given duration and return the raw statistics.
+ *
+ * @param {int} duration - How many milliseconds to monitor the server for.
+ * @param {string} regex - OPTIONAL - A string to perform a match against returned statistic keys.
+ * @returns {Object} - An object containing the derived statistics matching the regex if given.
+ */
+mongoTuning.monitorServerRaw = function (duration, regex) {
+  if (!duration) {
+    duration = 5000;
+  }
+  const monitoringData = mongoTuning.monitorServer(duration);
+  if (regex) {
+    return mongoTuning.serverStatSearch(monitoringData, regex);
+  }
+  return data;
+};
+
+//
+// ─── HELPERS ────────────────────────────────────────────────────────────────────
+//
 
 /**
  * Converts structured mongodb ServerStatus object into a flattened array of stats.
@@ -68,16 +144,7 @@ mongoTuning.flattenServerStatus = function (dbServerStatus) {
 };
 
 /**
- * Returns a simplified list of stats with a key value pair for each stat.
- *
- * @returns {SimpleServerStatus} - A single object with key value pairs for each stat.
- */
-mongoTuning.simpleStats = function () {
-  return mongoTuning.convertStat(mongoTuning.serverStatistics());
-};
-
-/**
- * Converts a stats object into a simplified stats object.
+ * Flattens complex server statistics into a simpler form.
  *
  * @param {RawServerStatus} serverStat - The raw server statistics result from Mongo.
  * @returns {SimpleServerStatus} - A single object with key value pairs for each stat.
@@ -91,12 +158,14 @@ mongoTuning.convertStat = function (serverStat) {
 };
 
 /**
- * Finds the difference between two stats.
- *
+ * Takes two sets of server statistics and calculates the difference and rate of change.
+ * @param {Object} initialStats - First set of statistics.
+ * @param {Object} finalStats - Second set of statistics.
+ * @returns {Array<Object>} - Array of delta information.
  */
-mongoTuning.serverStatDeltas = function (instat1, instat2) {
-  const stat1 = mongoTuning.convertStat(instat1);
-  const stat2 = mongoTuning.convertStat(instat2);
+mongoTuning.serverStatDeltas = function (initialStats, finalStats) {
+  const stat1 = mongoTuning.convertStat(initialStats);
+  const stat2 = mongoTuning.convertStat(finalStats);
   let delta;
   let rate;
   const statDelta = {};
@@ -122,185 +191,29 @@ mongoTuning.serverStatDeltas = function (instat1, instat2) {
 };
 
 /**
- * Function for comparing two sets of ServerStats collected at different times.
+ * Simple helper function for searching server stats for matching keys.
  *
- * @param {FlatServerStats} sample1 - Pass in some stats (for example from mongoTuning.serverStats()) to compare with sample2
- * @param {FlatServerStats} sample2 - Pass in some stats (for example from mongoTuning.serverStats()) to compare with sample1
- * @returns {ServerStatsSummary}
+ * @param {Object} stats - The server statistics to search.
+ * @param {String} regex - Regex to search for statistic keys.
+ * @returns {Array<Object>} - An array of matching key value pairs.
  */
-mongoTuning.serverStatSummary = function (sample1, sample2) {
-  // TODO: Statistic names change over versions
-  const data = {};
-  const deltas = mongoTuning.serverStatDeltas(sample1, sample2);
-
-  const finals = mongoTuning.convertStat(sample2);
-
-  // *********************************************
-  //  Network counters
-  // *********************************************
-  data.netKBInPS = deltas['network.bytesIn'].rate / 1024;
-  data.netKBOutPS = deltas['network.bytesOut'].rate / 1024;
-
-  // ********************************************
-  // Activity counters
-  // ********************************************
-  data.intervalSeconds = deltas.timeDelta;
-  data.queryPS = deltas['opcounters.query'].rate;
-  data.getmorePS = deltas['opcounters.getmore'].rate;
-  data.commandPS = deltas['opcounters.command'].rate;
-  data.insertPS = deltas['opcounters.insert'].rate;
-  data.updatePS = deltas['opcounters.update'].rate;
-  data.deletePS = deltas['opcounters.delete'].rate;
-
-  data.activeReaders = finals['globalLock.activeClients.readers'];
-  data.activeWriters = finals['globalLock.activeClients.writers'];
-  data.queuedReaders = finals['globalLock.currentQueue.readers'];
-  data.queuedWriters = finals['globalLock.currentQueue.writers'];
-  // var lockRe = /locks.*acquireCount.*floatApprox
-  //
-  // The "time acquiring" counts for locks seem to appoear only after some significant
-  // waits have occured.  Sometimes it's timeAcquiringMicros, and
-  // sometimes it's timeAcquireingMicros.*k.floatApprox
-  //
-  // print(deltas['opLatencies.reads.ops']);
-  if (deltas['opLatencies.reads.ops'].delta > 0) {
-    data.readLatencyMs =
-      deltas['opLatencies.reads.latency'].delta /
-      deltas['opLatencies.reads.ops'].delta /
-      1000;
-  } else data.readLatency = 0;
-
-  if (deltas['opLatencies.writes.ops'].delta > 0) {
-    data.writeLatencyMs =
-      deltas['opLatencies.writes.latency'].delta /
-      deltas['opLatencies.writes.ops'].delta /
-      1000;
-  } else data.writeLatency = 0;
-
-  if (deltas['opLatencies.commands.ops'].delta > 0) {
-    data.cmdLatencyMs =
-      deltas['opLatencies.commands.latency'].delta /
-      deltas['opLatencies.commands.ops'].delta /
-      1000;
-  } else data.cmdLatency = 0;
-
-  data.connections = deltas['connections.current'].lastValue;
-  data.availableConnections = deltas['connections.available'].firstValue;
-  data.assertsPS =
-    deltas['asserts.regular'].rate +
-    deltas['asserts.warning'].rate +
-    deltas['asserts.msg'].rate +
-    deltas['asserts.user'].rate +
-    deltas['asserts.rollovers'].rate;
-
-  // *********************************************************
-  // Memory counters
-  // *********************************************************
-
-  data.cacheGetsPS =
-    deltas['wiredTiger.cache.pages requested from the cache'].rate;
-
-  data.cacheHighWaterMB =
-    deltas['wiredTiger.cache.maximum bytes configured'].lastValue / 1048576;
-
-  data.cacheSizeMB =
-    deltas['wiredTiger.cache.bytes currently in the cache'].lastValue / 1048576;
-
-  /* data.cacheReadQAvailable =
-    deltas['wiredTiger.concurrentTransactions.read.available'].lastValue;
-  data.cacheReadQUsed =
-    deltas['wiredTiger.concurrentTransactions.read.out'].lastValue;
-
-  data.cacheWriteQAvailable =
-    deltas['wiredTiger.concurrentTransactions.write.available'].lastValue;
-  data.cacheWriteQUsed =
-    deltas['wiredTiger.concurrentTransactions.write.out'].lastValue;*/
-
-  data.diskBlockReadsPS = deltas['wiredTiger.block-manager.blocks read'].rate;
-  data.diskBlockWritesPS =
-    deltas['wiredTiger.block-manager.blocks written'].rate;
-
-  data.logKBRatePS = deltas['wiredTiger.log.log bytes written'].rate / 1024;
-
-  data.logSyncTimeRateMsPS =
-    deltas['wiredTiger.log.log sync time duration (usecs)'].rate / 1000;
-  Object.keys(data).forEach((key) => {
-    if (data[key] % 1 > 0.01) {
-      data[key] = data[key].toFixed(4);
-    }
-  });
-  return data;
-};
-
-/**
- * Takes two server stat samples between the interval and them summarizes them.
- *
- * @param {int} interval - The wait in between server stats samples.
- * @returns {ServerStatsSummary}
- */
-mongoTuning.startSampling = function () {
-  return mongoTuning.serverStatistics();
-};
-
-/**
- * Takes two server stat samples between the interval and them summarizes them.
- *
- * @param {Object} sampleStart - The original sample that was taken.
- * @param {boolean} fullStats - Return the full stats or not.
- * @returns {ServerStatsSummary}
- */
-mongoTuning.stopSampling = function (sampleStart, fullStats) {
-  if (!sampleStart) {
-    print(
-      'stopSample requires a sample object, created using mongoTuning.startSampling'
-    );
-  }
-  return mongoTuning.serverStatSummary(
-    sampleStart,
-    mongoTuning.serverStatistics(),
-    fullStats
-  );
-};
-
-mongoTuning.searchStats = function (serverStats, regex) {
-  const returnArray = [];
-  if (serverStats.statistics) {
-    serverStats.statistics.forEach((stat) => {
-      if (stat.statistic.match(regex)) {
-        returnArray.push(stat);
-      }
-    });
-  } else {
-    return mongoTuning.searchSample(serverStats, regex);
-  }
-
-  return returnArray;
-};
-
-mongoTuning.serverStatSearch = function (sample, regex) {
+mongoTuning.serverStatSearch = function (stats, regex) {
   const returnArray = {};
-  Object.keys(sample).forEach((key) => {
+  Object.keys(stats).forEach((key) => {
     if (key.match(regex)) {
-      returnArray[key] = sample[key];
+      returnArray[key] = stats[key];
     }
   });
   return returnArray;
 };
 
-mongoTuning.monitorServer = function (duration) {
-  let runningStats, initialStats;
-  let runTime = 0;
-  initialStats = mongoTuning.serverStatistics();
-  sleep(duration);
-  finalStats = mongoTuning.serverStatistics();
-  const deltas = mongoTuning.serverStatDeltas(initialStats, finalStats);
-  const finals = mongoTuning.convertStat(finalStats);
-  return { deltas, finals };
-};
-
-mongoTuning.monitorServerDerived = function (duration, regex) {
-  const monitoringData = mongoTuning.monitorServer(duration);
-  const { deltas, finals } = monitoringData;
+/**
+ * Derive some summary statistics from observed values.
+ * @param {Object} serverData - Server data gathered from mongoTuning.monitorServer, should contain deltas and final values.
+ * @returns {Object} - Data object containing the derived statistics.
+ */
+mongoTuning.derivedStats = function (serverData) {
+  const { deltas, finals } = serverData;
   const data = {};
   // *********************************************
   //  Network counters
@@ -400,17 +313,5 @@ mongoTuning.monitorServerDerived = function (duration, regex) {
       data[key] = data[key].toFixed(4);
     }
   });
-
-  if (regex) {
-    return mongoTuning.serverStatSearch(data, regex);
-  }
-  return data;
-};
-
-mongoTuning.monitorServerRaw = function (duration, regex) {
-  const data = mongoTuning.monitorServer(duration);
-  if (regex) {
-    return mongoTuning.serverStatSearch(data, regex);
-  }
   return data;
 };
