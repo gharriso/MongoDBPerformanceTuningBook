@@ -4,7 +4,7 @@
  * @Authors: Michael Harrison (Michael.J.Harrison@outlook.com) and Guy Harrison (Guy.A.Harrison@gmail.com).
  * @Date:   2020-09-03T17:54:50+10:00
  * @Last modified by:   Michael Harrison
- * @Last modified time: 2020-09-14T08:55:27+10:00
+ * @Last modified time: 2020-09-14T08:56:29+10:00
  *
  */
 
@@ -93,7 +93,7 @@ mongoTuning.monitorServerDerived = function (duration, regex) {
   if (regex) {
     return mongoTuning.serverStatSearch(derivedStats, regex);
   }
-  return data;
+  return derivedStats;
 };
 
 /**
@@ -111,7 +111,7 @@ mongoTuning.monitorServerRaw = function (duration, regex) {
   if (regex) {
     return mongoTuning.serverStatSearchRaw(monitoringData, regex);
   }
-  return data;
+  return monitoringData;
 };
 
 //
