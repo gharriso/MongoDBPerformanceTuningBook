@@ -8,7 +8,7 @@
  *
  */
 
-const mongoTuning = {};
+
 
 //
 // ─── DATA GATHERING ─────────────────────────────────────────────────────────────
@@ -255,6 +255,7 @@ mongoTuning.serverStatSearchRaw = function (stats, regex) {
 mongoTuning.derivedStatistics = function (serverData) {
   const { deltas, finals } = serverData;
   const data = {};
+  const descriptions = {};
   // *********************************************
   //  Network counters
   // *********************************************
@@ -343,6 +344,7 @@ mongoTuning.derivedStatistics = function (serverData) {
   // Memory counters
   // *********************************************************
 
+
   data.cacheReadQAvailable =
     deltas['wiredTiger.concurrentTransactions.read.available'].lastValue;
   data.cacheReadQUsed =
@@ -355,6 +357,28 @@ mongoTuning.derivedStatistics = function (serverData) {
 
   data.cacheGetsPS =
     deltas['wiredTiger.cache.pages requested from the cache'].rate;
+
+  data.cacheReadInsPS =
+    deltas['wiredTiger.cache.pages read into cache'].rate;
+
+  descriptions.wtHitRate =
+    'Hit Rate in the wiredTigerCache ';
+  if (data.cacheGetsPS > 0) {
+    data.wtHitRate =
+      ((data.cacheGetsPS - data.cacheReadInsPS) * 100) / data.cacheGetsPS;
+  } else {
+    data.wtHitRate = 0;
+  }
+
+  data.evictionsPs = deltas['wiredTiger.cache.eviction server evicting pages'].rate;
+  data.evictionBlockedPs = deltas['wiredTiger.thread-yield.page acquire eviction blocked'].rate;
+  if (data.evictionsPs > 0) {
+    data.evictionBlockRate = (data.evictionBlockedPs * 100) / data.evictionsPs;
+  } else data.evictionBlockRate = 0;
+
+  if (data.cacheReadInsPS > 0) {
+    data.evictionRate = (data.evictionsPs * 100) / data.cacheReadInsPS;
+  } else data.evictionRate = 0;
 
   data.cacheHighWaterMB =
     deltas['wiredTiger.cache.maximum bytes configured'].lastValue / 1048576;
@@ -377,4 +401,17 @@ mongoTuning.derivedStatistics = function (serverData) {
     }
   });
   return data;
+};
+
+
+mongoTuning.memoryReport = () => {
+  const serverStats = db.serverStatus();
+  print('Mongod virtual memory ', serverStats.mem.virtual);
+  print('Mongod resident memory', serverStats.mem.resident);
+  print(
+    'Wired Tiger cache size',
+    Math.round(
+      serverStats.wiredTiger.cache['bytes currently in the cache'] / 1048576
+    )
+  );
 };
