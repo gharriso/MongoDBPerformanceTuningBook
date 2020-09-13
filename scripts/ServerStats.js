@@ -4,11 +4,9 @@
  * @Authors: Michael Harrison (Michael.J.Harrison@outlook.com) and Guy Harrison (Guy.A.Harrison@gmail.com).
  * @Date:   2020-09-03T17:54:50+10:00
  * @Last modified by:   Michael Harrison
- * @Last modified time: 2020-09-07T20:05:03+10:00
+ * @Last modified time: 2020-09-14T08:55:07+10:00
  *
  */
-
-const mongoTuning = {};
 
 //
 // ─── DATA GATHERING ─────────────────────────────────────────────────────────────
