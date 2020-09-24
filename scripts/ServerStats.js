@@ -337,6 +337,8 @@ mongoTuning.derivedStatistics = function (serverData) {
   data.activeWriters = finals['globalLock.activeClients.writers'];
   data.queuedReaders = finals['globalLock.currentQueue.readers'];
   data.queuedWriters = finals['globalLock.currentQueue.writers'];
+  data.globalLockQueue = {readActive: data.activeReaders,readQueued:data.queuedReaders,
+  writeActive: data.activeWriters, writeQueued:data.queuedWriters };
 
   // *********************************************************
   // Memory counters
@@ -391,6 +393,12 @@ mongoTuning.derivedStatistics = function (serverData) {
 
   data.logSyncTimeRateMsPS =
     deltas['wiredTiger.log.log sync time duration (usecs)'].rate / 1000;
+
+  // *********************************************************
+  // Disk IO
+  // *********************************************************
+
+  
 
   Object.keys(data).forEach((key) => {
     if (data[key] % 1 > 0.01) {
