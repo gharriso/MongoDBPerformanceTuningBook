@@ -394,6 +394,14 @@ mongoTuning.derivedStatistics = function (serverData) {
   data.logSyncTimeRateMsPS =
     deltas['wiredTiger.log.log sync time duration (usecs)'].rate / 1000;
 
+  data.logSyncOpsPS =
+    deltas['wiredTiger.log.log sync operations'].rate;
+
+  if (data.logSyncOpsPS>0) {  
+    data.logAvgSyncTime=data.logSyncTimeRateMsPS/data.logSyncOpsPS;
+  }
+  else data.logAvgSyncTime=0;
+
   // *********************************************************
   // Disk IO
   // *********************************************************
