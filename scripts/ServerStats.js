@@ -63,8 +63,8 @@ mongoTuning.monitorServer = function (duration) {
   return { deltas, finals };
 };
 
-mongoTuning.keyServerStats = function (durationSeconds, regex) {
-  const monitoringData = mongoTuning.monitorServer(durationSeconds * 1000);
+mongoTuning.keyServerStats = function (duration, regex) {
+  const monitoringData = mongoTuning.monitorServer(duration);
   return mongoTuning.keyServerStatsFromSample(monitoringData, regex);
 };
 
@@ -359,16 +359,16 @@ mongoTuning.derivedStatistics = function (serverData) {
 
   data.cacheReadInsPS = deltas['wiredTiger.cache.pages read into cache'].rate;
 
-  descriptions.wtHitRate = 'Hit Rate in the wiredTigerCache ';
+  descriptions.cacheHitRate = 'Hit Rate in the wiredTigerCache ';
   if (data.cacheGetsPS > 0) {
-    data.wtHitRate =
+    data.cacheHitRate =
       ((data.cacheGetsPS - data.cacheReadInsPS) * 100) / data.cacheGetsPS;
   } else {
-    data.wtHitRate = 0;
+    data.cacheHitRate = 0;
   }
 
   data.evictionsPs =
-    deltas['wiredTiger.cache.eviction server evicting pages'].rate;
+    deltas['wiredTiger.cache.internal pages evicted'].rate;
   data.evictionBlockedPs =
     deltas['wiredTiger.thread-yield.page acquire eviction blocked'].rate;
   if (data.evictionsPs > 0) {
