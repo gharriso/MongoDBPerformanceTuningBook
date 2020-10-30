@@ -108,10 +108,16 @@ mongoTuning.executionStats = (execStatsIn) => {
     let extraData = '(';
     let printStage = 'unknown';
     if ('stage' in step) { printStage = step.stage; }
-    if ('shardName' in step) { printStage = step.shardName; }
+    if ('shardName' in step) { printStage = 'Shard ==> ' + step.shardName; }
     if ('indexName' in step) extraData += ' ' + step.indexName;
     if ('executionTimeMillisEstimate' in step) {
       extraData += ' ms:' + step.executionTimeMillisEstimate;
+    }
+    if ('executionTimeMillis' in step) {
+      extraData += ' ms:' + step.executionTimeMillis;
+    }
+    if ('nReturned' in step) {
+      extraData += ' returned:' + step.nReturned;
     }
     if ('keysExamined' in step) extraData += ' keys:' + step.keysExamined;
     if ('docsExamined' in step) extraData += ' docs:' + step.docsExamined;
