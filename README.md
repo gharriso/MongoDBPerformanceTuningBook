@@ -1,4 +1,4 @@
-# MongoDBPerformanceTuningBook
+# MongoDB Performance Tuning Book
 
 This repository contains helper scripts and examples for the Apress book "MongoDB Performance Tuning". - https://www.apress.com/us/book/9781484268780 
 
