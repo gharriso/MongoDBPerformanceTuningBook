@@ -1,3 +1,13 @@
+/*
+ * Explain Plan helper functions for the Apress book "MongoDB Performance Tuning"
+ *
+ * @Authors: Michael Harrison (Michael.J.Harrison@outlook.com) and Guy Harrison (Guy.A.Harrison@gmail.com).
+ * @Date:   2020-09-03T17:54:50+10:00
+ * @Last modified by:   Michael Harrison
+ * @Last modified time: 2021-04-08T10:51:11+10:00
+ *
+ */
+
 mongoTuning.prepExplain = (explainInput) => {
   // Takes as input explain output in one of the follow formats:
   // A fully explain JSON document, in which case emits winningPlan
@@ -107,8 +117,12 @@ mongoTuning.executionStats = (execStatsIn) => {
     }
     let extraData = '(';
     let printStage = 'unknown';
-    if ('stage' in step) { printStage = step.stage; }
-    if ('shardName' in step) { printStage = 'Shard ==> ' + step.shardName; }
+    if ('stage' in step) {
+      printStage = step.stage;
+    }
+    if ('shardName' in step) {
+      printStage = 'Shard ==> ' + step.shardName;
+    }
     if ('indexName' in step) extraData += ' ' + step.indexName;
     if ('executionTimeMillisEstimate' in step) {
       extraData += ' ms:' + step.executionTimeMillisEstimate;
@@ -121,8 +135,10 @@ mongoTuning.executionStats = (execStatsIn) => {
     }
     if ('keysExamined' in step) extraData += ' keys:' + step.keysExamined;
     if ('docsExamined' in step) extraData += ' docs:' + step.docsExamined;
-    if ('nWouldModify' in step && step.nWouldModify !== false) extraData += ' upd:' + step.nWouldModify;
-    if ('wouldInsert' in step && step.wouldInsert !== false) extraData += ' ins:' + step.wouldInsert;
+    if ('nWouldModify' in step && step.nWouldModify !== false)
+      extraData += ' upd:' + step.nWouldModify;
+    if ('wouldInsert' in step && step.wouldInsert !== false)
+      extraData += ' ins:' + step.wouldInsert;
     extraData += ')';
     print(stepNo++, printSpaces(depth), printStage, extraData);
   };
@@ -173,7 +189,9 @@ mongoTuning.aggregationExecutionStats = (execStatsIn) => {
       extraData += ' ms:' + step.executionTimeMillisEstimate;
     }
     if ('keysExamined' in step) extraData += ' keys:' + step.keysExamined;
-    if ('docsExamined' in step) { extraData += ' docsExamined:' + step.docsExamined; }
+    if ('docsExamined' in step) {
+      extraData += ' docsExamined:' + step.docsExamined;
+    }
     if ('nReturned' in step) extraData += ' nReturned:' + step.nReturned;
     extraData += ')';
     print(stepNo++, printSpaces(1), step.stage, extraData);
@@ -191,7 +209,7 @@ mongoTuning.aggregationExecutionStats = (execStatsIn) => {
       stepNo++,
       printSpaces(depth),
       Object.keys(stage)
-        .find(key => key.match(/$/))
+        .find((key) => key.match(/$/))
         .toUpperCase(),
       extraData
     );

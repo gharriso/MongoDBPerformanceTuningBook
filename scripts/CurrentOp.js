@@ -1,3 +1,12 @@
+/*
+ * Current Op helper functions for the Apress book "MongoDB Performance Tuning"
+ *
+ * @Authors: Michael Harrison (Michael.J.Harrison@outlook.com) and Guy Harrison (Guy.A.Harrison@gmail.com).
+ * @Date:   2020-09-03T17:54:50+10:00
+ * @Last modified by:   Michael Harrison
+ * @Last modified time: 2021-04-08T10:50:37+10:00
+ *
+ */
 mongoTuning.printCurrentOps = function (printZeroSecs, printInternalProcess) {
   // console.log(COps);
   var mydb = db.getSiblingDB('admin'); // eslint-disable-line
