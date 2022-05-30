@@ -12,11 +12,11 @@ definitions that we are aware of and give a brief explanation of each.
 |**AND_SORTED**                |Merge two or more index outputs for an index intersection plan.
 |**CACHED_PLAN**|               Indicates that a plan was retrieved from the plan cache rather than from a real-time optimizer action.
 |  **COLLSCAN**  |                Read every document in the collection.
-|  **COUNT**      |               Count the documents supplied by the inut step.
+|  **COUNT**      |               Count the documents supplied by the input step.
 |  **COUNT_SCAN**  |              A quick count of the documents returned by an index scan.
-|  **DELETE**       |             Documents are being deleted
-|  **DISTINCT_SCAN** |            An index scan that returns only unique values for a key
-|  **ENSURE_SORTED**  |           Checks the output of the previous stage to ensure that it is in the expected sorted order
+|  **DELETE**       |             Documents are being deleted.
+|  **DISTINCT_SCAN** |            An index scan that returns only unique values for a key.
+|  **ENSURE_SORTED**  |           Checks the output of the previous stage to ensure that it is in the expected sorted order.
 |  **EOF** |                      Usually means that the collection queried does not exist.
 |  **FETCH**|                     Get documents from a collection. This usually occurs after in index scan when additional attributes are required for filtering or projecting.
 |  **GEO_NEAR_2D**|               Get documents using a geospatial query against a 2d index to calculate geometries. Intended for legacy coordinate pairs in earlier versions of MongoDB.
@@ -26,7 +26,7 @@ definitions that we are aware of and give a brief explanation of each.
  | **LIMIT**    |                 Restricts the number of documents returned in the subsequent stages.
  | **MOCK**      |                Used only in unit tests to mock results for testing.
  | **MULTI_ITERATOR** |           Iterates over a collection. This stage is commonly seen in \$sample stages of aggregations.
- | **MULTI_PLAN** |               Multiple query plans were evaluated during command execution
+ | **MULTI_PLAN** |               Multiple query plans were evaluated during command execution.
  | **OR**         |               Two results were merged for a \$or operations -- usually associated with an index merge.
  | **PROJECTION_COVERED** |        An explicit projection which is supported by an index scan (eg, for a "covered" index query).
  | **PROJECTION_DEFAULT**  |      A "default" projection, where no explicit projection is requested.
